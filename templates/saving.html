@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}절약 - 행인{% endblock %}
+{% block content %}
+<div class="min-h-screen bg-gradient-to-b from-amber-100 to-base-200">
+    <!-- Header -->
+    <div class="bg-primary text-primary-content px-4 py-4 shadow-lg">
+        <h1 class="text-xl font-bold">절약</h1>
+        <p class="text-xs text-primary-content/70 mt-1">행이의 현명한 조언</p>
+    </div>
+
+    <div class="px-4 py-6 max-w-lg mx-auto space-y-6">
+        <!-- 메뉴판 사진 업로드 -->
+        <div class="card card-bordered bg-base-100 shadow-md">
+            <div class="card-body">
+                <h2 class="card-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                         stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /></svg>
+                    메뉴판 사진 업로드
+                </h2>
+                <form method="POST" action="{{ url_for('saving_upload') }}" enctype="multipart/form-data" class="mt-4">
+                    <div class="form-control mb-3">
+                        <label class="file-input file-input-bordered file-input-primary w-full">
+                            <input type="file" name="menu_photo" accept="image/*" required />
+                        </label>
+                    </div>
+                    <div class="form-control mb-3">
+                        <label class="label"><span class="label-text">추가 문의 (선택)</span></label>
+                        <input type="text" name="question" class="input input-bordered" placeholder="예: 이 메뉴 중 무엇을 추천하시나요?" />
+                    </div>
+                    <button type="submit" class="btn btn-primary w-full">행이에게 물어보기</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 행이 코멘트 출력 -->
+        {% if savings %}
+        <div class="space-y-4">
+            {% for saving in savings %}
+            <div class="card card-bordered bg-base-100 shadow-md">
+                <div class="card-body p-4">
+                    <div class="flex gap-3">
+                        {% if saving['image_path'] %}
+                        <div class="avatar flex-shrink-0">
+                            <div class="w-20 h-20 rounded">
+                                <img src="{{ url_for('uploaded_file', filename=saving['image_path']) }}" alt="메뉴판" />
+                            </div>
+                        </div>
+                        {% endif %}
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-2">
+                                <div class="avatar placeholder">
+                                    <div class="bg-gradient-to-r from-accent to-secondary text-accent-content rounded-full w-8">
+                                        <span class="text-xs">行</span>
+                                    </div>
+                                </div>
+                                <span class="font-semibold text-sm">행이</span>
+                            </div>
+                            <div class="bg-info/10 rounded-lg p-3 text-sm">
+                                <p class="whitespace-pre-wrap">{{ saving['ai_comment'] }}</p>
+                            </div>
+                            {% if saving['question'] %}
+                            <p class="text-xs text-base-content/50 mt-2">질문: {{ saving['question'] }}</p>
+                            {% endif %}
+                            <p class="text-xs text-base-content/40 mt-1">{{ saving['created_at'][:16] }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="card card-bordered bg-base-100 shadow-md">
+            <div class="card-body text-center py-8">
+                <div class="avatar placeholder mx-auto mb-3">
+                    <div class="bg-gradient-to-r from-accent to-secondary text-accent-content rounded-full w-20">
+                        <span class="text-2xl">行</span>
+                    </div>
+                </div>
+                <h3 class="font-bold">행이에게 물어보세요!</h3>
+                <p class="text-base-content/60 text-sm">메뉴판 사진을 올리면 행이가 현명한 조언을 해줘요</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

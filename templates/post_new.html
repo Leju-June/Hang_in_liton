@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}여행 모집 작성 - 행인{% endblock %}
+{% block content %}
+<div class="px-4 py-6 max-w-lg mx-auto">
+    <h1 class="text-xl font-bold mb-6">여행 모집 글 작성</h1>
+    <form method="POST" class="space-y-4">
+        <div class="form-control">
+            <label class="label"><span class="label-text">제목</span></label>
+            <input type="text" name="title" required class="input input-bordered" placeholder="여행 모집 제목" />
+        </div>
+        <div class="form-control">
+            <label class="label"><span class="label-text">여행지</span></label>
+            <input type="text" name="trip_place" class="input input-bordered" placeholder="예: 서울 종로구" />
+        </div>
+        <div class="form-control">
+            <label class="label"><span class="label-text">여행 날짜</span></label>
+            <input type="date" name="trip_date" class="input input-bordered" />
+        </div>
+        <div class="form-control">
+            <label class="label"><span class="label-text">내용</span></label>
+            <textarea name="body" required class="textarea textarea-bordered h-40"
+                      placeholder="여행 계획, 일정, 함께하고 싶은 내용을 적어주세요."></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary w-full">등록하기</button>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}행인 매칭 - 행인{% endblock %}
+{% block content %}
+<div class="min-h-screen bg-gradient-to-b from-indigo-100 to-base-200">
+    <!-- Header -->
+    <div class="bg-primary text-primary-content px-4 py-4 shadow-lg">
+        <h1 class="text-xl font-bold">행인 매칭</h1>
+        <p class="text-xs text-primary-content/70 mt-1">여행 동행을 만나보세요</p>
+    </div>
+
+    <div class="px-4 py-6 max-w-lg mx-auto space-y-6">
+        <!-- 약속시간 잡기 섹션 -->
+        <div class="card card-bordered bg-base-100 shadow-md">
+            <div class="card-body">
+                <h2 class="card-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                         stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    약속 시간 잡기
+                </h2>
+                <form method="POST" action="{{ url_for('match_schedule') }}" class="mt-4">
+                    <div class="form-control mb-3">
+                        <label class="label"><span class="label-text">제목</span></label>
+                        <input type="text" name="title" required class="input input-bordered" placeholder="예: 종로구 아침 산책" />
+                    </div>
+                    <div class="form-control mb-3">
+                        <label class="label"><span class="label-text">장소</span></label>
+                        <input type="text" name="place" class="input input-bordered" placeholder="약속 장소" />
+                    </div>
+                    <div class="form-control mb-3">
+                        <label class="label"><span class="label-text">날짜/시간</span></label>
+                        <input type="datetime-local" name="match_time" required class="input input-bordered" />
+                    </div>
+                    <div class="form-control mb-3">
+                        <label class="label"><span class="label-text">내용</span></label>
+                        <textarea name="description" class="textarea textarea-bordered h-24" placeholder="상세 내용"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-full">시간 신청하기</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 매칭 요청 목록 -->
+        <div class="card card-bordered bg-base-100 shadow-md">
+            <div class="card-body">
+                <h2 class="card-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                         stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                    매칭 요청 목록
+                </h2>
+                {% if match_requests %}
+                <div class="space-y-3 mt-3">
+                    {% for req in match_requests %}
+                    <div class="collapse collapse-arrow bg-base-200">
+                        <input type="checkbox" checked />
+                        <div class="collapse-title flex items-center gap-3">
+                            <div class="avatar placeholder">
+                                <div class="bg-primary text-primary-content rounded-full w-10">
+                                    <span class="text-xs">{{ req['nickname'][0] }}</span>
+                                </div>
+                            </div>
+                            <div class="flex-1">
+                                <p class="font-semibold">{{ req['nickname'] }}</p>
+                                <p class="text-xs">{{ req['match_time'][:16] }}</p>
+                            </div>
+                        </div>
+                        <div class="collapse-content">
+                            <p class="text-sm">{{ req['match_message'] }}</p>
+                            {% if req['post_title'] %}
+                            <span class="badge badge-sm badge-ghost mt-1">{{ req['post_title'] }}</span>
+                            {% endif %}
+                            {% if 'user_id' in session and session['user_id'] == req['target_user_id'] %}
+                            <div class="flex gap-2 mt-2">
+                                <form method="POST" action="{{ url_for('match_accept', request_id=req['id']) }}" class="flex-1">
+                                    <button type="submit" class="btn btn-success btn-sm w-full">수락</button>
+                                </form>
+                                <form method="POST" action="{{ url_for('match_decline', request_id=req['id']) }}" class="flex-1">
+                                    <button type="submit" class="btn btn-error btn-sm w-full">거절</button>
+                                </form>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-6 text-base-content/50">
+                    <p>매칭 요청이 없습니다.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 내 매칭 상태 -->
+        <div class="card card-bordered bg-base-100 shadow-md">
+            <div class="card-body">
+                <h2 class="card-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                         stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    내 매칭 상태
+                </h2>
+                <div class="flex gap-2 mt-3">
+                    <button class="btn btn-secondary btn-sm flex-1" onclick="document.getElementById('matchDrawer').showModal()">
+                        매칭하기
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 매칭 대화창 모달 -->
+<dialog id="matchDrawer" class="modal">
+    <div class="modal-box w-11/12 max-w-lg">
+        <h3 class="font-bold text-lg">매칭하기</h3>
+        <form method="POST" action="{{ url_for('match_apply_home') }}" class="mt-4 space-y-3">
+            <div class="form-control">
+                <label class="label"><span class="label-text">상대방 닉네임</span></label>
+                <input type="text" name="target_nickname" required class="input input-bordered" placeholder="매칭하고 싶은 상대방의 닉네임" />
+            </div>
+            <div class="form-control">
+                <label class="label"><span class="label-text">희망 시간</span></label>
+                <input type="datetime-local" name="match_time" class="input input-bordered" />
+            </div>
+            <div class="form-control">
+                <label class="label"><span class="label-text">메시지</span></label>
+                <textarea name="match_message" class="textarea textarea-bordered h-24" placeholder="매칭 메시지를 적어주세요"></textarea>
+            </div>
+            <div class="modal-action">
+                <form method="dialog">
+                    <button class="btn">닫기</button>
+                </form>
+                <button type="submit" class="btn btn-primary">신청하기</button>
+            </div>
+        </form>
+    </div>
+</dialog>
+{% endblock %}
