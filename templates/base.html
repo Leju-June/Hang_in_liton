@@ -1,72 +1,40 @@
 <!DOCTYPE html>
-<html lang="ko" data-theme="light">
+<html lang="ko" data-theme="hangin">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}행인(HANG IN){% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="{{ '#0025C4' if screen_theme == 'blue' else '#FFFFFF' }}">
+    <title>{% block title %}행인 HANG-IN{% endblock %}</title>
+    <link rel="icon" href="{{ url_for('static', filename='img/avatar-blue.png') }}">
     <link href="https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css" rel="stylesheet" />
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { theme: { extend: { colors: { hb: { blue: '#0025C4', lime: '#BFFF48', ink: '#191919', gray: '#969696', soft: '#F4F5FA' } } } } };
+    </script>
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
-    <style>
-        body { display: flex; flex-direction: column; min-height: 100vh; padding-bottom: 70px; }
-        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 50; }
-        .main-content { flex: 1; }
-        .bottom-nav .menu-item { text-align: center; font-size: 0.75rem; }
-        .bottom-nav .menu-item svg { width: 1.5rem; height: 1.5rem; }
-        .bottom-nav .menu-item.active { color: oklch(var(--p)); }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
 </head>
-<body class="bg-base-200">
+<body hx-headers='{"X-CSRF-Token": "{{ csrf_token() }}"}'>
 
-    <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
-    <div class="toast toast-top toast-end">
+    <div class="toasts" role="status" aria-live="polite">
         {% for category, message in messages %}
-        <div class="alert alert-{{ category }} shadow-lg">
-            <span>{{ message }}</span>
-        </div>
+        <div class="toast-item toast-item--{{ category }}">{{ message }}</div>
         {% endfor %}
     </div>
     {% endif %}
     {% endwith %}
 
-    <!-- Main Content -->
-    <div class="main-content">
+    <main class="screen{% if screen_theme == 'blue' %} screen--blue{% endif %}{% if hide_dock or not current_user %} screen--nodock{% endif %} {% block screen_class %}{% endblock %}">
         {% block content %}{% endblock %}
-    </div>
+    </main>
 
-    <!-- Bottom Navigation -->
-    <div class="bottom-nav">
-        <div class="navbar border-t bg-base-100">
-            <a href="{{ url_for('home') }}" class="menu-item {% if request.endpoint == 'home' %}active{% endif %}">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                     class="mx-auto h-6 w-6" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7 7 7-7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4h2a1 1 0 011 1v4" /></svg>
-                <span class="mt-0.5">홈</span>
-            </a>
-            <a href="{{ url_for('match_page') }}" class="menu-item {% if request.endpoint == 'match_page' %}active{% endif %}">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                     class="mx-auto h-6 w-6" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-4.158A5 5 0 009 10v9a3 3 0 005.356 4.158A5 5 0 0017 20z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20h5v-2a3 3 0 00-5.356-4.158A5 5 0 00-1 10v9a3 3 0 005.356 4.158A5 5 0 009 20z" /></svg>
-                <span class="mt-0.5">행인 매칭</span>
-            </a>
-            <a href="{{ url_for('expense_page') }}" class="menu-item {% if request.endpoint == 'expense_page' %}active{% endif %}">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                     class="mx-auto h-6 w-6" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z" /></svg>
-                <span class="mt-0.5">정산</span>
-            </a>
-            <a href="{{ url_for('saving_page') }}" class="menu-item {% if request.endpoint == 'saving_page' %}active{% endif %}">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                     class="mx-auto h-6 w-6" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                <span class="mt-0.5">절약</span>
-            </a>
-            <a href="{{ url_for('mypage') }}" class="menu-item {% if request.endpoint == 'mypage' %}active{% endif %}">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                     class="mx-auto h-6 w-6" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                <span class="mt-0.5">마이페이지</span>
-            </a>
-        </div>
-    </div>
+    {% if current_user and not hide_dock %}{% include 'dock.html' %}{% endif %}
 
+    {% block overlays %}{% endblock %}
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

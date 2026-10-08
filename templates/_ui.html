@@ -1,0 +1,40 @@
+{# 여러 화면에서 쓰는 작은 조각들 #}
+
+{% macro avatar(user_id, size=44, cls='') -%}
+<img src="{{ avatar_of(user_id) }}" alt="" width="{{ size }}" height="{{ size }}" class="avatar-img {{ cls }}" style="width:{{ size }}px;height:{{ size }}px">
+{%- endmacro %}
+
+{% macro type_badge(code, types, cls='tag') -%}
+{% if code and code in types %}<span class="{{ cls }}">{{ types[code][0] }} {{ types[code][1] }}</span>{% endif %}
+{%- endmacro %}
+
+{% macro loading(id, title, sub='', image='haengi.png', scan=false) -%}
+<div class="loading-overlay" id="{{ id }}" role="alert" aria-live="assertive">
+    {% if scan %}
+    <div class="scan-box">
+        <div class="scan__corners"></div>
+        <div class="scan__line"></div>
+        <img src="{{ url_for('static', filename='img/' ~ image) }}" alt="" class="haengi" style="width:150px;margin:34px auto 0">
+    </div>
+    {% else %}
+    <img src="{{ url_for('static', filename='img/' ~ image) }}" alt="" class="haengi haengi--outline haengi--bob" style="width:170px">
+    {% endif %}
+    <p class="loading-overlay__title">{{ title }}</p>
+    {% if sub %}<p class="hint" style="color:rgba(255,255,255,.75);font-size:14px;margin:0">{{ sub }}</p>{% endif %}
+    <div class="loading-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+</div>
+{%- endmacro %}
+
+{% macro csrf() -%}
+<input type="hidden" name="_csrf" value="{{ csrf_token() }}">
+{%- endmacro %}
+
+{% macro camera_icon(size=22) -%}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+{%- endmacro %}
+
+{% macro back_link(href, label='뒤로') -%}
+<a href="{{ href }}" class="inline-flex items-center gap-1 text-sm muted no-underline mb-4" aria-label="{{ label }}">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>{{ label }}
+</a>
+{%- endmacro %}

@@ -1,0 +1,14 @@
+# 비밀값
+.env
+
+# 가상환경 / 캐시
+.venv/
+__pycache__/
+*.pyc
+
+# 사용자가 올린 사진
+uploads/*
+!uploads/.gitkeep
+
+# 디자인 원본(용량이 커서 GitHub 100MB 제한을 넘음)
+*.fig
