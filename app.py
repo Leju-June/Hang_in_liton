@@ -18,24 +18,30 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 # ─── DB helpers ───────────────────────────────────────────────
 
 def get_db():
-    """Open a DB connection per request."""
-    if 'db' not in session:
+    """Open a DB connection per request (using Flask g)."""
+    if 'db' not in g:
         db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'hangin.db')
-        session['db'] = sqlite3.connect(db_path)
-        session['db'].row_factory = sqlite3.Row
-    return session['db']
+        g.db = sqlite3.connect(db_path)
+        g.db.row_factory = sqlite3.Row
+    return g.db
 
 
 def init_db():
     """Create tables if they don't exist."""
-    db = get_db()
-    db.executescript('''
+    db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'hangin.db')
+    conn = sqlite3.connect(db_path)
+    conn.executescript('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             nickname TEXT NOT NULL,
             email TEXT UNIQUE NOT NULL,
             password_hash TEXT NOT NULL,
             profile TEXT DEFAULT '',
+            travel_style TEXT DEFAULT '',
+            budget TEXT DEFAULT '',
+            personality TEXT DEFAULT '',
+            push_notify TEXT DEFAULT 'on',
+            email_notify TEXT DEFAULT 'off',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
         CREATE TABLE IF NOT EXISTS posts (
@@ -89,7 +95,8 @@ def init_db():
             FOREIGN KEY (user_id) REFERENCES users(id)
         );
     ''')
-    db.commit()
+    conn.commit()
+    conn.close()
 
 
 # ─── Auth ─────────────────────────────────────────────────────
@@ -101,10 +108,14 @@ def register():
         email = request.form['email']
         password = request.form['password']
         password_hash = generate_password_hash(password)
+        travel_style = request.form.get('travel_style', '')
+        budget = request.form.get('budget', '')
+        personality = request.form.get('personality', '')
         db = get_db()
         try:
-            db.execute('INSERT INTO users (nickname, email, password_hash) VALUES (?, ?, ?)',
-                       (nickname, email, password_hash))
+            db.execute('''INSERT INTO users (nickname, email, password_hash, travel_style, budget, personality)
+                          VALUES (?, ?, ?, ?, ?, ?)''',
+                       (nickname, email, password_hash, travel_style, budget, personality))
             db.commit()
             flash('회원가입이 완료되었습니다. 로그인해주세요.', 'success')
             return redirect(url_for('login'))
@@ -324,20 +335,27 @@ def mypage():
     return render_template('mypage.html', user=user)
 
 
-@app.route('/my/profile', methods=['POST'])
-def my_profile():
+@app.route('/profile/edit', methods=['POST'])
+def profile_edit():
     if 'user_id' not in session:
         return redirect(url_for('login'))
+    nickname = request.form.get('nickname', '')
     profile = request.form.get('profile', '')
+    travel_style = request.form.get('travel_style', '')
+    budget = request.form.get('budget', '')
+    personality = request.form.get('personality', '')
     db = get_db()
-    db.execute('UPDATE users SET profile = ? WHERE id = ?', (profile, session['user_id']))
+    db.execute('''UPDATE users SET nickname = ?, profile = ?, travel_style = ?, budget = ?, personality = ?
+                  WHERE id = ?''',
+               (nickname, profile, travel_style, budget, personality, session['user_id']))
     db.commit()
-    flash('성향 정보가 업데이트되었습니다.', 'success')
+    session['nickname'] = nickname
+    flash('프로필이 업데이트되었습니다.', 'success')
     return redirect(url_for('mypage'))
 
 
-@app.route('/my/password', methods=['POST'])
-def my_password():
+@app.route('/password/change', methods=['POST'])
+def password_change():
     if 'user_id' not in session:
         return redirect(url_for('login'))
     current = request.form['current_password']
@@ -372,8 +390,8 @@ def my_notifications():
     return redirect(url_for('mypage'))
 
 
-@app.route('/my/delete', methods=['POST'])
-def my_delete():
+@app.route('/profile/delete', methods=['POST'])
+def profile_delete():
     if 'user_id' not in session:
         return redirect(url_for('login'))
     db = get_db()
