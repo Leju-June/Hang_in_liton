@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% from "_brand.html" import logo %}
+{% set screen_theme = 'blue' %}
+{% set hide_dock = true %}
+{% block title %}행인 HANG-IN — 낭비 없는 여행, 마음 맞는 순간{% endblock %}
+{% block screen_class %}screen--bare{% endblock %}
+{% block content %}
+<section class="hero-fill" style="padding:17dvh 28px 0">
+    {{ logo('logo logo--lg') }}
+    <p class="lime" style="font-size:20px;font-weight:500;margin:18px 0 0">낭비 없는 여행, 마음 맞는 순간.</p>
+
+    <div class="w-full grid gap-3" style="max-width:340px;margin-top:40px;position:relative;z-index:2">
+        <a href="{{ url_for('register') }}" class="btn-pill btn-lime">행인 시작하기</a>
+        <a href="{{ url_for('login') }}" class="btn-pill btn-glass">이미 계정이 있어요</a>
+    </div>
+
+    <img src="{{ url_for('static', filename='img/haengi.png') }}" alt="행인의 마스코트 행이" class="haengi haengi--outline peek" style="width:min(80%, 46dvh);bottom:-40px">
+</section>
+{% endblock %}

@@ -1,121 +1,208 @@
 {% extends "base.html" %}
-{% block title %}정산 - 행인{% endblock %}
+{% import "_ui.html" as ui %}
+{% block title %}정산하기 - 행인{% endblock %}
+{% set avatar_files = ['avatar-yellow.png', 'avatar-blue.png', 'avatar-lime.png'] %}
+{% set expense_categories = [('식사', '🍜'), ('교통', '🚕'), ('숙박', '🛏️'), ('쇼핑', '🛍️'), ('입장료', '🎫'), ('기타', '🧾')] %}
+{% set ns = namespace(text='[행인 정산] 총 지출 ' ~ (total|money(currency)) ~ ' / ' ~ members|length ~ '명') %}
+{% for t in transfers %}{% set ns.text = ns.text ~ '\n' ~ t['from'] ~ ' → ' ~ t['to'] ~ ': ' ~ (t['amount']|money(currency)) %}{% endfor %}
+
 {% block content %}
-<div class="min-h-screen bg-gradient-to-b from-emerald-100 to-base-200">
-    <!-- Header -->
-    <div class="bg-primary text-primary-content px-4 py-4 shadow-lg">
-        <h1 class="text-xl font-bold">비용 정산</h1>
-        <p class="text-xs text-primary-content/70 mt-1">여행 경비를 깔끔하게</p>
+<h1 class="page-title">정산하기</h1>
+
+<section id="settle" style="margin-top:22px">
+    <div class="card-blue">
+        <div class="row-between">
+            <h2 style="margin:0;font-size:17px;font-weight:500">정산요약</h2>
+            <button type="button" data-share="{{ ns.text }}" aria-label="정산 내용 공유" style="background:none;border:0;color:#fff;cursor:pointer;padding:2px">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v13"/></svg>
+            </button>
+        </div>
+        <hr>
+        <dl class="grid gap-3" style="margin:0;font-size:14px">
+            <div class="row-between"><dt>총 지출</dt><dd style="margin:0;font-weight:600">{{ total|money(currency) }}</dd></div>
+            <div class="row-between">
+                <dt>참여인원</dt>
+                <dd class="stepper" style="margin:0">
+                    <form method="POST" action="{{ url_for('expense_member_remove') }}">{{ ui.csrf() }}<button type="submit" aria-label="참여인원 빼기" {% if members|length <= 1 %}disabled style="opacity:.4"{% endif %}>−</button></form>
+                    <span class="stepper__value" style="font-weight:600">{{ members|length }}명</span>
+                    <button type="button" aria-label="참여인원 추가" onclick="document.getElementById('member-sheet').showModal()">+</button>
+                </dd>
+            </div>
+            <div class="row-between"><dt>정산완료</dt><dd style="margin:0;font-weight:700">{{ settled_count }}/{{ members|length }}</dd></div>
+        </dl>
+        <div class="grid grid-cols-2 gap-3" style="margin-top:18px">
+            <button type="button" class="btn-pill btn-lime btn-sm" style="width:100%" onclick="document.getElementById('ratio-sheet').showModal()">정산비율</button>
+            <button type="button" class="btn-pill btn-glass btn-sm" style="width:100%" data-share="{{ ns.text }}">공유하기</button>
+        </div>
     </div>
 
-    <div class="px-4 py-6 max-w-lg mx-auto space-y-6">
-        <!-- 영수증 업로드 -->
-        <div class="card card-bordered bg-base-100 shadow-md">
-            <div class="card-body">
-                <h2 class="card-title">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                         stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                    영수증 업로드
-                </h2>
-                <form method="POST" action="{{ url_for('expense_upload') }}" enctype="multipart/form-data" class="mt-4">
-                    <div class="form-control mb-3">
-                        <label class="label"><span class="label-text">비용 항목</span></label>
-                        <select name="category" class="select select-bordered">
-                            <option value="meal">식사</option>
-                            <option value="transport">교통</option>
-                            <option value="accommodation">숙박</option>
-                            <option value="shopping">쇼핑</option>
-                            <option value="ticket">입장료</option>
-                            <option value="etc">기타</option>
-                        </select>
-                    </div>
-                    <div class="form-control mb-3">
-                        <label class="label"><span class="label-text">금액</span></label>
-                        <input type="number" name="amount" required class="input input-bordered" placeholder="금액 입력" min="0" />
-                    </div>
-                    <div class="form-control mb-3">
-                        <label class="label"><span class="label-text">참여자 (쉼표로 구분)</span></label>
-                        <input type="text" name="participants" class="input input-bordered" placeholder="예: 나,친구1,친구2" />
-                    </div>
-                    <div class="form-control mb-3">
-                        <label class="label"><span class="label-text">메모</span></label>
-                        <input type="text" name="memo" class="input input-bordered" placeholder="메모" />
-                    </div>
-                    <div class="form-control mb-3">
-                        <label class="label"><span class="label-text">영수증 사진</span></label>
-                        <input type="file" name="receipt_image" accept="image/*" class="file-input file-input-bordered file-input-sm w-full" />
-                    </div>
-                    <button type="submit" class="btn btn-primary w-full">등록하기</button>
+    <div class="card-blue" style="margin-top:14px">
+        <h2 style="margin:0;font-size:17px;font-weight:500">멤버별 정산 현황</h2>
+        <hr>
+        <ul class="grid gap-3" style="margin:0;padding:0;list-style:none">
+            {% for m in members %}
+            {% set b = balance.get(m['name'], 0) %}
+            <li class="row-between" style="{% if m['settled'] %}opacity:.55{% endif %}">
+                <div class="flex items-center gap-3" style="min-width:0">
+                    <img src="{{ url_for('static', filename='img/' ~ avatar_files[loop.index0 % 3]) }}" alt="" class="avatar-img" style="width:42px;height:42px">
+                    <span style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ m['name'] }}{% if loop.first %} <span style="font-size:11px;color:rgba(255,255,255,.6)">(나)</span>{% endif %}</span>
+                </div>
+                <div class="flex items-center gap-2" style="flex-shrink:0">
+                    {% if b > 0.005 %}
+                    <i style="width:10px;height:10px;border-radius:9px;background:var(--hb-lime)"></i>
+                    <span class="lime" style="font-weight:600;font-size:14px">받을 금액: {{ b|money(currency) }}</span>
+                    {% elif b < -0.005 %}
+                    <span style="font-weight:600;font-size:14px">지불 금액: {{ (-b)|money(currency) }}</span>
+                    {% else %}
+                    <span style="font-size:13px;color:rgba(255,255,255,.7)">정산할 금액 없음</span>
+                    {% endif %}
+                    <button type="button" hx-post="{{ url_for('expense_member_toggle', member_id=m['id']) }}" hx-target="#settle" hx-select="#settle" hx-swap="outerHTML"
+                            aria-label="{{ m['name'] }} 정산완료 {{ '취소' if m['settled'] else '표시' }}" aria-pressed="{{ 'true' if m['settled'] else 'false' }}"
+                            style="width:26px;height:26px;border-radius:99px;border:1.5px solid #fff;background:{{ 'var(--hb-lime)' if m['settled'] else 'transparent' }};color:var(--hb-blue);display:grid;place-items:center;cursor:pointer">
+                        {% if m['settled'] %}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><path d="M5 12l5 5 9-10"/></svg>{% endif %}
+                    </button>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% if members|length == 1 %}<p style="margin:14px 0 0;font-size:13px;color:rgba(255,255,255,.75)">참여인원 + 버튼으로 함께 여행하는 행인을 추가하세요.</p>{% endif %}
+    </div>
+</section>
+
+{% if transfers %}
+<section style="margin-top:26px">
+    <h2 class="section-title">이렇게 보내면 끝!</h2>
+    <div class="grid gap-2">
+        {% for t in transfers %}
+        <div class="card-soft row-between" style="padding:14px 16px;font-size:14px">
+            <span><b>{{ t['from'] }}</b> <span class="muted">→</span> <b>{{ t['to'] }}</b></span>
+            <span class="blue" style="font-weight:700">{{ t['amount']|money(currency) }}</span>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<section style="margin-top:26px">
+    <h2 class="section-title">지출 기록 {{ expenses|length }}</h2>
+    <div class="grid gap-2">
+        {% for e in expenses %}
+        <div class="card-line flex items-center gap-3" style="padding:12px 14px">
+            {% if e['receipt_image'] %}
+            <a href="{{ url_for('uploaded_file', filename=e['receipt_image']) }}" target="_blank" rel="noopener" class="list-card__thumb" style="width:48px;height:48px;font-size:22px;background:var(--hb-soft)">
+                <img src="{{ url_for('uploaded_file', filename=e['receipt_image']) }}" alt="영수증">
+            </a>
+            {% else %}
+            <div class="list-card__thumb" style="width:48px;height:48px;font-size:22px;background:var(--hb-soft)">{{ dict(expense_categories).get(e['category'], '🧾') }}</div>
+            {% endif %}
+            <div style="flex:1;min-width:0">
+                <p style="margin:0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ e['title'] }}</p>
+                <p class="list-card__meta" style="margin:3px 0 0">{{ e['payer'] or '-' }} 결제 · {{ e['split_with']|replace(',', ', ') }}</p>
+            </div>
+            <div class="text-right" style="flex-shrink:0">
+                <p style="margin:0;font-weight:700">{{ e['amount']|money(e['currency'] or currency) }}</p>
+                <form method="POST" action="{{ url_for('expense_delete', expense_id=e['id']) }}" onsubmit="return confirm('이 지출 기록을 삭제할까요?')">
+                    {{ ui.csrf() }}<button type="submit" class="link-btn muted" style="font-size:12px">삭제</button>
                 </form>
             </div>
         </div>
-
-        <!-- 비용 대시보드 -->
-        <div class="card card-bordered bg-base-100 shadow-md">
-            <div class="card-body">
-                <h2 class="card-title">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                         stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-                    비용 정리 대시보드
-                </h2>
-
-                <!-- 전체 비용 -->
-                <div class="stats stats-vertical lg:stats-horizontal shadow mt-3">
-                    <div class="stat">
-                        <div class="stat-title">총 지출</div>
-                        <div class="stat-value text-primary">{{ total_amount:,.0f }}원</div>
-                    </div>
-                    <div class="stat">
-                        <div class="stat-title">내 부담</div>
-                        <div class="stat-value text-secondary">{{ my_share:,.0f }}원</div>
-                    </div>
-                    <div class="stat">
-                        <div class="stat-title">내 받을钱</div>
-                        <div class="stat-value text-success">{{ my_refund:,.0f }}원</div>
-                    </div>
-                </div>
-
-                <!-- 카테고리별 비용 -->
-                {% if expenses %}
-                <div class="mt-4">
-                    <h3 class="font-semibold mb-2">내역 목록</h3>
-                    <div class="space-y-2">
-                        {% for exp in expenses %}
-                        <div class="flex items-center gap-3 p-3 bg-base-200 rounded-lg">
-                            {% if exp['image_path'] %}
-                            <div class="avatar">
-                                <div class="w-12 h-12 rounded">
-                                    <img src="{{ url_for('uploaded_file', filename=exp['image_path']) }}" alt="영수증" />
-                                </div>
-                            </div>
-                            {% else %}
-                            <div class="w-12 h-12 rounded bg-base-300 flex items-center justify-center">
-                                {% if exp['category'] == 'meal' %}🍜
-                                {% elif exp['category'] == 'transport' %}🚕
-                                {% elif exp['category'] == 'accommodation' %}🏨
-                                {% elif exp['category'] == 'shopping' %}🛍️
-                                {% elif exp['category'] == 'ticket' %}🎫
-                                {% else %}📝{% endif %}
-                            </div>
-                            {% endif %}
-                            <div class="flex-1">
-                                <p class="font-semibold text-sm">{{ exp['category_name'] }}</p>
-                                <p class="text-xs text-base-content/60">{{ exp['memo'] }}{% if exp['participants'] %} · {{ exp['participants'] }}{% endif %}</p>
-                            </div>
-                            <div class="text-right">
-                                <p class="font-bold">{{ exp['amount']:,.0f }}원</p>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-                {% else %}
-                <div class="text-center py-6 text-base-content/50">
-                    <p>등록된 비용 내역이 없습니다.</p>
-                </div>
-                {% endif %}
-            </div>
+        {% else %}
+        <div class="card-soft text-center" style="padding:28px 18px">
+            <p style="margin:0;font-weight:600">아직 기록된 지출이 없어요</p>
+            <p class="muted" style="margin:6px 0 0;font-size:13px">아래 ‘영수증 사진찍기’로 첫 지출을 남겨 보세요.</p>
         </div>
+        {% endfor %}
     </div>
-</div>
+</section>
+
+<button type="button" class="fab" onclick="document.getElementById('expense-sheet').showModal()">
+    {{ ui.camera_icon(20) }} 영수증 사진찍기
+</button>
+{% endblock %}
+
+{% block overlays %}
+<dialog id="expense-sheet" class="modal modal-bottom" {% if prefill.title or prefill.amount %}data-autoopen{% endif %}>
+    <div class="modal-box">
+        <h3 class="page-title" style="font-size:21px">지출 기록하기</h3>
+        <form method="POST" action="{{ url_for('expense_add') }}" enctype="multipart/form-data" style="margin-top:18px">
+            {{ ui.csrf() }}
+            <label class="block" style="margin-bottom:14px">
+                <span class="sr-only">제목</span>
+                <input type="text" name="title" required maxlength="60" value="{{ prefill.title }}" placeholder="제목을 입력해 주세요." class="field">
+            </label>
+            <label class="block" style="margin-bottom:16px">
+                <span class="block text-sm muted mb-1">금액 ({{ currency }})</span>
+                <input type="number" name="amount" required min="0.01" step="0.01" inputmode="decimal" value="{{ prefill.amount }}" placeholder="0" class="field">
+            </label>
+            <div class="chips" style="margin-bottom:18px">
+                {% for name, emoji in expense_categories %}
+                <label class="chip chip--light"><input type="radio" name="category" value="{{ name }}" {% if loop.first %}checked{% endif %}><span>{{ emoji }} {{ name }}</span></label>
+                {% endfor %}
+            </div>
+            <label class="block" style="margin-bottom:16px">
+                <span class="block text-sm muted mb-1">결제한 사람</span>
+                <select name="payer" class="field">
+                    {% for m in members %}<option value="{{ m['name'] }}">{{ m['name'] }}</option>{% endfor %}
+                </select>
+            </label>
+            <fieldset style="border:0;padding:0;margin:0 0 16px">
+                <legend class="block text-sm muted mb-2">함께 나눌 사람</legend>
+                <div class="chips">
+                    {% for m in members %}
+                    <label class="chip chip--light"><input type="checkbox" name="participants" value="{{ m['name'] }}" checked><span>{{ m['name'] }}</span></label>
+                    {% endfor %}
+                </div>
+            </fieldset>
+            <label class="scan" style="aspect-ratio:auto;height:120px;margin-bottom:18px">
+                <input type="file" name="receipt_image" accept="image/*" capture="environment" data-resize="1600" data-preview="receipt-preview" class="sr-only">
+                <img id="receipt-preview" alt="" hidden>
+                <span class="scan__corners"></span>
+                <span class="flex items-center gap-2 blue" style="position:absolute;font-size:14px;font-weight:600">{{ ui.camera_icon(20) }} 영수증 사진 (선택)</span>
+            </label>
+            <button type="submit" class="btn-pill btn-blue">기록하기</button>
+        </form>
+    </div>
+    <form method="dialog" class="modal-backdrop"><button>닫기</button></form>
+</dialog>
+
+<dialog id="member-sheet" class="modal modal-middle">
+    <div class="modal-box">
+        <h3 class="page-title" style="font-size:20px">함께하는 행인 추가</h3>
+        <form method="POST" action="{{ url_for('expense_member_add') }}" style="margin-top:16px">
+            {{ ui.csrf() }}
+            <input type="text" name="name" maxlength="20" placeholder="이름 (비우면 '행인 {{ members|length + 1 }}')" class="field">
+            <div class="grid grid-cols-2 gap-2" style="margin-top:16px">
+                <button type="button" class="btn-pill btn-soft btn-sm" style="width:100%" onclick="this.closest('dialog').close()">취소</button>
+                <button type="submit" class="btn-pill btn-blue btn-sm" style="width:100%">추가</button>
+            </div>
+        </form>
+    </div>
+    <form method="dialog" class="modal-backdrop"><button>닫기</button></form>
+</dialog>
+
+<dialog id="ratio-sheet" class="modal modal-bottom">
+    <div class="modal-box">
+        <h3 class="page-title" style="font-size:21px">정산비율</h3>
+        <p class="muted" style="margin:6px 0 16px;font-size:13px">각자 실제로 쓴(부담한) 금액과 낸 금액이에요.</p>
+        <table class="menu-table">
+            <tbody>
+            {% for m in members %}
+            {% set spent = paid.get(m['name'], 0) - balance.get(m['name'], 0) %}
+            <tr>
+                <td><b>{{ m['name'] }}</b><br><span class="muted">낸 금액 {{ paid.get(m['name'], 0)|money(currency) }}</span></td>
+                <td><b class="blue">{{ (spent / total * 100)|round(1) if total else 0 }}%</b><br><span class="muted">부담 {{ spent|money(currency) }}</span></td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        <button type="button" class="btn-pill btn-blue" style="margin-top:18px" onclick="this.closest('dialog').close()">확인</button>
+    </div>
+    <form method="dialog" class="modal-backdrop"><button>닫기</button></form>
+</dialog>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.querySelectorAll('dialog[data-autoopen]').forEach(function (d) { d.showModal(); });
+</script>
 {% endblock %}

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui %}
+{% block title %}매칭 요청 - 행인{% endblock %}
+{% block content %}
+{{ ui.back_link(url_for('match_page')) }}
+<h1 class="page-title">매칭 요청</h1>
+
+<nav class="chips" style="margin-top:20px" aria-label="요청 종류">
+    <a href="{{ url_for('match_requests', tab='received') }}" class="chip-link{% if tab != 'sent' %} is-on{% endif %}">받은 요청 {{ received|length }}</a>
+    <a href="{{ url_for('match_requests', tab='sent') }}" class="chip-link{% if tab == 'sent' %} is-on{% endif %}">보낸 요청 {{ sent|length }}</a>
+</nav>
+
+{% set items = sent if tab == 'sent' else received %}
+<section class="grid gap-2" style="margin-top:20px">
+    {% for r in items %}
+    {% set other_id = r['to_user_id'] if tab == 'sent' else r['from_user_id'] %}
+    <a href="{{ url_for('match_request_detail', request_id=r['id']) }}" class="list-card" style="align-items:center">
+        {{ ui.avatar(other_id, 50) }}
+        <div style="flex:1;min-width:0">
+            <p style="margin:0;font-weight:700">{{ r['nickname'] }}</p>
+            <p class="list-card__meta" style="margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r['post_title'] or '직접 신청' }} · {{ r['created_at']|time_ago }}</p>
+            <div style="margin-top:6px">{{ ui.type_badge(r['travel_type'], types) }}</div>
+        </div>
+        {% if r['status'] == 'pending' %}
+        <span class="tag" style="background:#FFF3C4;color:#8A6200">대기 중</span>
+        {% elif r['status'] == 'accepted' %}
+        <span class="tag tag--lime">매칭 완료</span>
+        {% else %}
+        <span class="tag" style="color:var(--hb-gray)">거절</span>
+        {% endif %}
+    </a>
+    {% else %}
+    <div class="card-soft text-center" style="padding:34px 18px">
+        <img src="{{ url_for('static', filename='img/haengi-friend.png') }}" alt="" class="haengi" style="width:90px;margin:0 auto 12px">
+        <p style="margin:0;font-weight:600">{% if tab == 'sent' %}보낸 요청이 없어요{% else %}아직 받은 요청이 없어요{% endif %}</p>
+        <a href="{{ url_for('match_find') }}" class="btn-pill btn-blue btn-sm" style="margin:16px auto 0">행인 찾기</a>
+    </div>
+    {% endfor %}
+</section>
+{% endblock %}

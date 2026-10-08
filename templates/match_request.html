@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui %}
+{% set screen_theme = 'blue' %}
+{% block title %}{{ other['nickname'] }}님과 행인 - 행인{% endblock %}
+{% block content %}
+<a href="{{ url_for('match_requests', tab='received' if is_receiver else 'sent') }}" class="inline-flex items-center gap-1 text-sm no-underline" style="color:rgba(255,255,255,.75)">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>매칭 요청
+</a>
+
+<h1 class="page-title text-center" style="margin-top:18px;font-size:25px">
+    {% if req['status'] == 'accepted' %}행인이 되었어요!<br>즐거운 여행 되세요
+    {% elif is_receiver %}친구가 찾아왔어요!<br>행인 할까요?
+    {% else %}{{ other['nickname'] }}님께<br>행인 신청을 보냈어요{% endif %}
+</h1>
+
+<img src="{{ avatar_of(other['id']) }}" alt="" class="haengi haengi--outline{% if req['status'] == 'pending' %} haengi--bob{% endif %}" style="width:200px;margin:22px auto 0;border-radius:0;background:none">
+<p class="lime text-center" style="margin:12px 0 0;font-size:25px;font-weight:700">{{ other['nickname'] }}</p>
+{% if other_profile %}
+<p class="text-center" style="margin:8px 0 0"><span class="tag tag--lime">{{ other_profile.emoji }} {{ other_profile.name }}</span></p>
+{% endif %}
+
+<div class="grid grid-cols-2 gap-4" style="margin-top:22px;font-size:14px;line-height:1.75">
+    <div>
+        {% if other['birth_year'] %}<div>{{ other['birth_year'] }}년생</div>{% endif %}
+        <div>위치: {{ other_country.flag }} {{ other_country.name }}</div>
+        {% if other['gender'] %}<div>성별: {{ other['gender'] }}</div>{% endif %}
+    </div>
+    <div>
+        {% for q in questions %}
+        <div><span style="color:rgba(255,255,255,.65)">{{ q.label }}:</span> {{ (other_answers.get(q.key) or ['-'])|join(', ') }}</div>
+        {% endfor %}
+    </div>
+</div>
+
+{% if post %}
+<a href="{{ url_for('post_detail', post_id=post['id']) }}" class="block no-underline" style="margin-top:18px;padding:14px 16px;border-radius:12px;background:rgba(255,255,255,.12);color:#fff;font-size:13px">
+    <span style="color:rgba(255,255,255,.65)">모집글</span> · {{ post['title'] }}
+</a>
+{% endif %}
+{% if req['message'] %}
+<div style="margin-top:10px;padding:14px 16px;border-radius:12px;background:rgba(255,255,255,.12);font-size:14px;line-height:1.65;white-space:pre-wrap">💬 {{ req['message'] }}</div>
+{% endif %}
+{% if req['meet_time'] or req['meet_place'] %}
+<p style="margin:10px 0 0;font-size:13px;color:rgba(255,255,255,.8)">🕒 {{ req['meet_time']|replace('T', ' ') }} {% if req['meet_place'] %}· 📍 {{ req['meet_place'] }}{% endif %}</p>
+{% endif %}
+
+<div class="grid gap-3" style="margin-top:26px">
+    {% if req['status'] == 'accepted' %}
+        {% if other['contact'] %}
+        <div style="padding:16px 18px;border-radius:14px;background:#fff;color:var(--hb-ink)">
+            <p class="muted" style="margin:0;font-size:12px">{{ other['nickname'] }}님의 연락처</p>
+            <p style="margin:4px 0 0;font-size:17px;font-weight:700;color:var(--hb-blue)">{{ other['contact'] }}</p>
+        </div>
+        <button type="button" class="btn-pill btn-lime" data-copy="{{ other['contact'] }}">연락처 복사하고 대화하기</button>
+        {% else %}
+        <p style="margin:0;padding:16px;border-radius:14px;background:rgba(255,255,255,.12);font-size:14px">{{ other['nickname'] }}님이 아직 연락처를 등록하지 않았어요. 모집글 댓글이나 약속 장소에서 만나요!</p>
+        {% endif %}
+        {% if not current_user['contact'] %}<a href="{{ url_for('mypage') }}#profile" class="btn-pill btn-glass">내 연락처 등록하기</a>{% endif %}
+    {% elif req['status'] == 'pending' and is_receiver %}
+        <form method="POST" action="{{ url_for('match_accept', request_id=req['id']) }}">
+            {{ ui.csrf() }}
+            <button type="submit" class="btn-pill btn-lime">수락하고 대화하기</button>
+        </form>
+        <form method="POST" action="{{ url_for('match_decline', request_id=req['id']) }}">
+            {{ ui.csrf() }}
+            <button type="submit" class="btn-pill btn-glass">다음에 할게요</button>
+        </form>
+        <p class="hint text-center" style="margin:0">수락하면 서로의 연락처(카카오톡·DM)가 공개돼요.</p>
+    {% elif req['status'] == 'pending' %}
+        <p class="text-center" style="margin:0;font-size:14px;color:rgba(255,255,255,.8)">상대가 수락하면 연락처가 공개돼요. 조금만 기다려 주세요!</p>
+    {% else %}
+        <p class="text-center" style="margin:0;font-size:14px;color:rgba(255,255,255,.8)">이번 매칭은 성사되지 않았어요.</p>
+        <a href="{{ url_for('match_find') }}" class="btn-pill btn-glass">다른 행인 찾기</a>
+    {% endif %}
+</div>
+{% endblock %}

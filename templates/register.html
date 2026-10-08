@@ -1,120 +1,64 @@
 {% extends "base.html" %}
+{% from "_brand.html" import logo %}
+{% import "_ui.html" as ui %}
+{% set screen_theme = 'blue' %}
+{% set hide_dock = true %}
 {% block title %}회원가입 - 행인{% endblock %}
 {% block content %}
-<div class="min-h-screen bg-gradient-to-b from-purple-100 to-base-200 flex items-center justify-center px-4 py-8">
-    <div class="card card-bordered bg-base-100 shadow-xl w-full max-w-md">
-        <div class="card-body items-center text-center">
-            <!-- 로고 -->
-            <div class="avatar placeholder mb-4">
-                <div class="bg-primary text-primary-content rounded-full w-20">
-                    <span class="text-4xl">行</span>
-                </div>
-            </div>
-            <h1 class="text-2xl font-bold">행인(HANG IN)</h1>
-            <p class="text-base-content/60">여행의 시작, 함께라면 더 아름답다</p>
+<a href="{{ url_for('home') }}" aria-label="처음 화면으로">{{ logo('logo') }}</a>
 
-            {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-            {% for category, message in messages %}
-            <div class="alert alert-{{ category }} mt-4">
-                <span>{{ message }}</span>
-            </div>
-            {% endfor %}
-            {% endif %}
-            {% endwith %}
+<h1 class="headline" style="margin-top:48px">혼자 떠나도 괜찮아요.
+마음 맞는 행인을 찾아드릴게요!</h1>
 
-            <!-- 회원가입 폼 -->
-            <form method="POST" action="{{ url_for('register') }}" class="mt-6 w-full">
-                <div class="form-control mb-4">
-                    <label class="label">
-                        <span class="label-text">이메일</span>
-                    </label>
-                    <input type="email" name="email" placeholder="your@email.com" required
-                           class="input input-bordered w-full bg-base-200" />
-                </div>
+<form method="POST" action="{{ url_for('register') }}" style="margin-top:32px">
+    {{ ui.csrf() }}
+    <label class="form-row block">
+        <span class="block text-sm mb-2" style="color:rgba(255,255,255,.8)">닉네임</span>
+        <input type="text" name="nickname" required maxlength="20" value="{{ form.get('nickname', '') }}" placeholder="여행에서 불릴 이름" class="field field--glass">
+    </label>
+    <label class="form-row block">
+        <span class="block text-sm mb-2" style="color:rgba(255,255,255,.8)">이메일</span>
+        <input type="email" name="email" required autocomplete="email" value="{{ form.get('email', '') }}" placeholder="your@email.com" class="field field--glass">
+    </label>
+    <label class="form-row block">
+        <span class="block text-sm mb-2" style="color:rgba(255,255,255,.8)">비밀번호</span>
+        <input type="password" name="password" required minlength="8" autocomplete="new-password" placeholder="8자 이상" class="field field--glass">
+    </label>
+    <label class="form-row block">
+        <span class="block text-sm mb-2" style="color:rgba(255,255,255,.8)">비밀번호 확인</span>
+        <input type="password" name="password_confirm" required minlength="8" autocomplete="new-password" placeholder="한 번 더 입력" class="field field--glass">
+    </label>
 
-                <div class="form-control mb-4">
-                    <label class="label">
-                        <span class="label-text">비밀번호</span>
-                    </label>
-                    <input type="password" name="password" placeholder="8자 이상" required minlength="8"
-                           class="input input-bordered w-full bg-base-200" />
-                </div>
-
-                <div class="form-control mb-4">
-                    <label class="label">
-                        <span class="label-text">비밀번호 확인</span>
-                    </label>
-                    <input type="password" name="password_confirm" placeholder="비밀번호 재입력" required minlength="8"
-                           class="input input-bordered w-full bg-base-200" />
-                </div>
-
-                <div class="form-control mb-4">
-                    <label class="label">
-                        <span class="label-text">닉네임</span>
-                    </label>
-                    <input type="text" name="nickname" placeholder="여행 동반자 이름" required maxlength="20"
-                           class="input input-bordered w-full bg-base-200" />
-                </div>
-
-                <!-- 성향 설정 (선택) -->
-                <details class="collapse collapse-arrow bg-base-200 w-full mb-4">
-                    <summary class="collapse-title">
-                        <span class="collapse-title-text font-medium">성향 설정 (선택)</span>
-                    </summary>
-                    <div class="collapse-content space-y-3">
-                        <div class="form-control">
-                            <label class="label">
-                                <span class="label-text">여행 스타일</span>
-                            </label>
-                            <select name="travel_style" class="select select-bordered bg-base-200">
-                                <option value="">선택하세요</option>
-                                <option value="액티비티">액티비티 & 모험</option>
-                                <option value="힐링">힐링 & 여유</option>
-                                <option value="문화">문화 & 여행</option>
-                                <option value="맛집">맛집 & 쇼핑</option>
-                                <option value="무계획">무계획 & 자유</option>
-                            </select>
-                        </div>
-
-                        <div class="form-control">
-                            <label class="label">
-                                <span class="label-text">예산대</span>
-                            </label>
-                            <select name="budget" class="select select-bordered bg-base-200">
-                                <option value="">선택하세요</option>
-                                <option value="저예산">저예산 (1일 10만 원 미만)</option>
-                                <option value="보통">보통 (1일 10~30만 원)</option>
-                                <option value="고예산">고예산 (1일 30만 원 이상)</option>
-                                <option value="유연">유연함</option>
-                            </select>
-                        </div>
-
-                        <div class="form-control">
-                            <label class="label">
-                                <span class="label-text">성향</span>
-                            </label>
-                            <select name="personality" class="select select-bordered bg-base-200">
-                                <option value="">선택하세요</option>
-                                <option value="리더">리더 타입</option>
-                                <option value="팔로워">팔로워 타입</option>
-                                <option value="협력">협력 타입</option>
-                                <option value="자유인">자유인</option>
-                            </select>
-                        </div>
-                    </div>
-                </details>
-
-                <button type="submit" class="btn btn-secondary w-full">회원가입</button>
-            </form>
-
-            <p class="text-base-content/60 mt-4">
-                이미 회원이신가요?
-                <a href="{{ url_for('login') }}" class="text-primary font-semibold">로그인</a>
-            </p>
-
-            <a href="{{ url_for('home') }}" class="btn btn-ghost btn-sm mt-2">취소</a>
+    <details class="fold form-row" style="border-top:1px solid rgba(255,255,255,.25);padding-top:18px">
+        <summary class="row-between" style="font-size:15px">
+            <span>매칭 프로필 <span style="color:rgba(255,255,255,.6)">(선택)</span></span>
+            <svg class="fold__icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+        </summary>
+        <div class="grid grid-cols-2 gap-3" style="margin-top:16px">
+            <label class="block">
+                <span class="block text-sm mb-2" style="color:rgba(255,255,255,.8)">성별</span>
+                <select name="gender" class="field field--glass">
+                    <option value="">선택 안 함</option>
+                    {% for g_ in ['여자', '남자'] %}<option value="{{ g_ }}" {% if form.get('gender') == g_ %}selected{% endif %}>{{ g_ }}</option>{% endfor %}
+                </select>
+            </label>
+            <label class="block">
+                <span class="block text-sm mb-2" style="color:rgba(255,255,255,.8)">출생연도</span>
+                <input type="number" name="birth_year" min="1900" max="2026" inputmode="numeric" value="{{ form.get('birth_year', '') }}" placeholder="예: 2002" class="field field--glass">
+            </label>
         </div>
-    </div>
-</div>
+        <label class="block" style="margin-top:14px">
+            <span class="block text-sm mb-2" style="color:rgba(255,255,255,.8)">카카오톡 ID 또는 인스타그램</span>
+            <input type="text" name="contact" maxlength="60" value="{{ form.get('contact', '') }}" placeholder="예: kakao: hangin_trip" class="field field--glass">
+        </label>
+        <p class="hint">연락처는 매칭을 수락한 상대에게만 공개돼요.</p>
+    </details>
+
+    <button type="submit" class="btn-pill btn-lime">가입하고 여행 성향 알아보기</button>
+</form>
+
+<p class="text-center text-sm" style="margin-top:22px;color:rgba(255,255,255,.75)">
+    이미 계정이 있나요?
+    <a href="{{ url_for('login') }}" class="lime" style="font-weight:700;margin-left:4px">로그인</a>
+</p>
 {% endblock %}

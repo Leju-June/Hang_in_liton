@@ -97,8 +97,12 @@ def chat_json(messages, **kwargs):
 
 # ─── CLOVA OCR ───────────────────────────────────────────────
 
+_ocr_unreachable_until = 0.0
+
+
 def ocr_configured():
-    return bool(_env('CLOVA_OCR_INVOKE_URL') and _env('CLOVA_OCR_SECRET'))
+    """OCR 주소가 설정돼 있고, 최근 10분 안에 연결 실패한 적이 없으면 True"""
+    return bool(_env('CLOVA_OCR_INVOKE_URL') and _env('CLOVA_OCR_SECRET')) and time.time() >= _ocr_unreachable_until
 
 
 def ocr_text(image_bytes, image_format):
@@ -118,10 +122,13 @@ def ocr_text(image_bytes, image_format):
     lang = _env('CLOVA_OCR_LANG')
     if lang:
         message['lang'] = lang
+    global _ocr_unreachable_until
     try:
         res = requests.post(url, headers={'X-OCR-SECRET': secret, 'Content-Type': 'application/json'},
                             json=message, timeout=(5, 40))
     except requests.RequestException as e:
+        if isinstance(e, (requests.ConnectionError, requests.ConnectTimeout)):
+            _ocr_unreachable_until = time.time() + 600
         raise ClovaError('CLOVA OCR에 연결하지 못했어요.') from e
     if res.status_code != 200:
         raise ClovaError(f'CLOVA OCR 오류 (HTTP {res.status_code})')
@@ -147,11 +154,14 @@ def ocr_text(image_bytes, image_format):
 def _travel_system_prompt():
     axes = '\n'.join(f"- {a['key']}: {a['desc']}" for a in tt.AXES)
     types = '\n'.join(f'{code}: {name} - {tagline}' for code, (_, name, tagline) in tt.TYPES.items())
-    return _prompt('travel_type_system.txt').replace('{{AXES}}', axes).replace('{{TYPES}}', types)
+    return (_prompt('travel_type_system.txt').replace('{{AXES}}', axes)
+            .replace('{{HINTS}}', tt.axis_hints()).replace('{{TYPES}}', types))
 
 
 def _travel_user_prompt(answers):
-    return '\n'.join(f"[{q['label']}] {', '.join(answers.get(q['key'], [])) or '선택 없음'}" for q in tt.QUESTIONS)
+    lines = [f"[{q['label']}] {', '.join(tt.plain(o) for o in answers.get(q['key'], [])) or '선택 없음'}"
+             for q in tt.QUESTIONS]
+    return '사용자가 고른 항목입니다.\n' + '\n'.join(lines)
 
 
 def _str_list(value, limit):
@@ -165,7 +175,7 @@ def analyze_travel_type(answers):
     raw = chat_json([
         {'role': 'system', 'content': _travel_system_prompt()},
         {'role': 'user', 'content': _travel_user_prompt(answers)},
-    ], max_tokens=1200, temperature=0.4)
+    ], max_tokens=1200, temperature=0.3)
     return normalize_travel_profile(raw, answers, source='hcx')
 
 
@@ -219,9 +229,23 @@ def _to_number(value):
     return None
 
 
-def analyze_menu(*, people, country_name, currency, note='', travel_type=None, ocr=None, image_b64=None):
-    """OCR 텍스트(없으면 이미지 자체)를 HyperCLOVA X에 보내 N빵 가이드 JSON을 받는다."""
-    system = _prompt('menu_guide_system.txt').replace('{{CURRENCY}}', currency)
+IMAGE_MIME = {'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png', 'webp': 'image/webp'}
+
+
+def transcribe_menu(image, image_format):
+    """CLOVA OCR을 쓸 수 없을 때 HCX-005 비전으로 메뉴판 글자를 옮겨 적는다(OCR 대체)."""
+    data_uri = f"data:{IMAGE_MIME.get(image_format, 'image/jpeg')};base64,{base64.b64encode(image).decode()}"
+    return chat([
+        {'role': 'system', 'content': _prompt('menu_transcribe_system.txt')},
+        {'role': 'user', 'content': [
+            {'type': 'image_url', 'dataUri': {'data': data_uri}},
+            {'type': 'text', 'text': '이 메뉴판의 글자를 빠짐없이 옮겨 적어 주세요.'},
+        ]},
+    ], max_tokens=2000, temperature=0.0, timeout=90).strip()
+
+
+def analyze_menu(*, menu_text, people, country_name, currency, note='', travel_type=None):
+    """메뉴판 글자(OCR 결과)를 HyperCLOVA X에 보내 절약형 N빵 가이드 JSON을 받는다."""
     context = [
         f'[여행 국가] {country_name} (기본 통화 {currency})',
         f'[인원 수] {people}명',
@@ -229,24 +253,36 @@ def analyze_menu(*, people, country_name, currency, note='', travel_type=None, o
     ]
     if travel_type:
         context.append(f"[주문하는 사람의 여행 성향] {travel_type['name']} - {travel_type.get('summary', '')}")
-    if ocr:
-        context.append('[메뉴판 OCR 결과]\n' + ocr[:6000])
-        user_content = '\n'.join(context) + '\n\n위 메뉴판으로 절약형 N빵 가이드를 JSON으로 만들어 주세요.'
-    else:
-        user_content = [
-            {'type': 'image_url', 'dataUri': {'data': image_b64}},
-            {'type': 'text', 'text': '\n'.join(context) + '\n\n사진 속 메뉴판을 읽고 절약형 N빵 가이드를 JSON으로 만들어 주세요.'},
-        ]
+    context.append('[메뉴판 OCR 결과]\n' + menu_text[:6000])
     raw = chat_json([
-        {'role': 'system', 'content': system},
-        {'role': 'user', 'content': user_content},
+        {'role': 'system', 'content': _prompt('menu_guide_system.txt').replace('{{CURRENCY}}', currency)},
+        {'role': 'user', 'content': '\n'.join(context) + '\n\n위 메뉴판으로 절약형 N빵 가이드를 JSON으로 만들어 주세요.'},
     ], max_tokens=3000, temperature=0.2, timeout=120)
     return normalize_menu_guide(raw, people=people, currency=currency)
 
 
+_CATEGORY_WORDS = [
+    ('디저트', ('dessert', 'sweet', 'dolce', 'postre', '甜', 'デザート', '디저트')),
+    ('음료', ('drink', 'boisson', 'beverage', 'bebida', 'wine', 'vin', 'beer', 'bière', 'cafe', 'café', '음료', '飲', '酒')),
+    ('전채', ('entrée', 'entree', 'starter', 'appet', 'antipast', 'tapa', '전채', '前菜')),
+    ('사이드', ('side', 'accomp', 'garniture', '사이드')),
+    ('메인', ('main', 'plat', 'secondi', 'primi', 'pizza', 'pasta', '메인', '主')),
+]
+
+
+def _category(value):
+    text = str(value or '').strip()
+    if text in ('메인', '전채', '사이드', '음료', '디저트', '기타'):
+        return text
+    low = text.lower()
+    return next((name for name, words in _CATEGORY_WORDS if any(w in low for w in words)), '기타')
+
+
 def normalize_menu_guide(raw, *, people, currency):
-    """금액 계산은 AI 대신 서버가 다시 한다(수량 × 단가)."""
+    """금액 계산은 AI 대신 서버가 다시 한다(메뉴판 가격 우선, 수량 × 단가)."""
     cur = str(raw.get('currency') or currency).upper().strip()[:3] or currency
+    if not re.fullmatch(r'[A-Z]{3}', cur):
+        cur = currency
     menu = []
     for item in (raw.get('menu_items') or [])[:30]:
         if not isinstance(item, dict) or not item.get('name'):
@@ -255,16 +291,17 @@ def normalize_menu_guide(raw, *, people, currency):
             'name': str(item.get('name')).strip(),
             'name_ko': str(item.get('name_ko') or '').strip(),
             'price': _to_number(item.get('price')),
-            'category': str(item.get('category') or '기타').strip(),
+            'category': _category(item.get('category')),
             'shareable': bool(item.get('shareable')),
         })
+    menu_price = {m['name'].lower(): m['price'] for m in menu if m['price'] is not None}
     orders, total = [], 0.0
     for item in raw.get('orders') or []:
         if not isinstance(item, dict) or not item.get('name'):
             continue
         qty = _to_number(item.get('quantity')) or 1
         qty = max(1, min(int(round(qty)), 20))
-        unit = _to_number(item.get('unit_price'))
+        unit = menu_price.get(str(item.get('name')).strip().lower(), _to_number(item.get('unit_price')))
         subtotal = round(unit * qty, 2) if unit is not None else None
         if subtotal is not None:
             total += subtotal

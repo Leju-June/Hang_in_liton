@@ -1,27 +1,45 @@
 {% extends "base.html" %}
-{% block title %}여행 모집 작성 - 행인{% endblock %}
+{% import "_ui.html" as ui %}
+{% block title %}행인 구하기 - 행인{% endblock %}
 {% block content %}
-<div class="px-4 py-6 max-w-lg mx-auto">
-    <h1 class="text-xl font-bold mb-6">여행 모집 글 작성</h1>
-    <form method="POST" class="space-y-4">
-        <div class="form-control">
-            <label class="label"><span class="label-text">제목</span></label>
-            <input type="text" name="title" required class="input input-bordered" placeholder="여행 모집 제목" />
+{{ ui.back_link(url_for('match_page')) }}
+<h1 class="page-title">행인 구하기</h1>
+
+<form method="POST" action="{{ url_for('match_new') }}" style="margin-top:30px">
+    {{ ui.csrf() }}
+    <div class="form-row">
+        <label for="title" class="section-title block">제목</label>
+        <input id="title" type="text" name="title" required maxlength="80" value="{{ form.get('title', '') }}" placeholder="제목을 입력해 주세요." class="field">
+    </div>
+
+    <fieldset class="form-row" style="border:0;padding:0;margin-left:0;margin-right:0">
+        <legend class="section-title">카테고리</legend>
+        <div class="chips">
+            {% for name, emoji in categories %}
+            <label class="chip chip--light">
+                <input type="radio" name="category" value="{{ name }}" {% if form.get('category', '숙박') == name %}checked{% endif %}>
+                <span>{{ emoji }} {{ name }}</span>
+            </label>
+            {% endfor %}
         </div>
-        <div class="form-control">
-            <label class="label"><span class="label-text">여행지</span></label>
-            <input type="text" name="trip_place" class="input input-bordered" placeholder="예: 서울 종로구" />
-        </div>
-        <div class="form-control">
-            <label class="label"><span class="label-text">여행 날짜</span></label>
-            <input type="date" name="trip_date" class="input input-bordered" />
-        </div>
-        <div class="form-control">
-            <label class="label"><span class="label-text">내용</span></label>
-            <textarea name="body" required class="textarea textarea-bordered h-40"
-                      placeholder="여행 계획, 일정, 함께하고 싶은 내용을 적어주세요."></textarea>
-        </div>
-        <button type="submit" class="btn btn-primary w-full">등록하기</button>
-    </form>
-</div>
+    </fieldset>
+
+    <div class="form-row">
+        <label for="trip_place" class="section-title block">도착 장소</label>
+        <input id="trip_place" type="text" name="trip_place" maxlength="80" value="{{ form.get('trip_place', '') }}" placeholder="장소를 입력해 주세요. (예: 파리 에펠탑 근처)" class="field">
+    </div>
+
+    <div class="form-row">
+        <label for="trip_date" class="section-title block">여행 날짜 <span class="muted" style="font-size:14px;font-weight:500">(선택)</span></label>
+        <input id="trip_date" type="date" name="trip_date" value="{{ form.get('trip_date', '') }}" class="field">
+    </div>
+
+    <div class="form-row">
+        <label for="body" class="section-title block">자세한 설명</label>
+        <textarea id="body" name="body" required maxlength="3000" class="field" style="min-height:220px" placeholder="함께하고 싶은 일정과 나누고 싶은 비용, 원하는 행인의 성향을 적어 주세요.&#10;&#10;예) 숙소 2인실을 셰어하고 싶어요. 밤에는 조용히 쉬는 편이에요!">{{ form.get('body', '') }}</textarea>
+        <p class="hint">내 여행 성향은 글과 함께 자동으로 보여요. 연락처는 매칭이 수락된 뒤에만 공개돼요.</p>
+    </div>
+
+    <button type="submit" class="btn-pill btn-blue">글 올리기</button>
+</form>
 {% endblock %}

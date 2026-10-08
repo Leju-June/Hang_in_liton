@@ -1,86 +1,84 @@
 {% extends "base.html" %}
-{% block title %}절약 - 행인{% endblock %}
+{% import "_ui.html" as ui %}
+{% block title %}절약하기 - 행인{% endblock %}
 {% block content %}
-<div class="min-h-screen bg-gradient-to-b from-amber-100 to-base-200">
-    <!-- Header -->
-    <div class="bg-primary text-primary-content px-4 py-4 shadow-lg">
-        <h1 class="text-xl font-bold">절약</h1>
-        <p class="text-xs text-primary-content/70 mt-1">행이의 현명한 조언</p>
+<h1 class="page-title">절약하기</h1>
+
+<section class="card-blue" style="margin-top:20px;position:relative;overflow:hidden;min-height:150px;padding:22px">
+    <div style="position:relative;z-index:1;max-width:62%">
+        <p class="lime" style="margin:0;font-size:21px;font-weight:700;line-height:1.38">메뉴판만 찍으면<br>행이가 N빵 해줄게요!</p>
+        <p style="margin:10px 0 0;font-size:13px;line-height:1.55;color:rgba(255,255,255,.85)">외국어 메뉴판을 읽고, 남기지 않고 가장 싸게 나눠 먹는 주문 조합을 알려드려요.</p>
+    </div>
+    <img src="{{ url_for('static', filename='img/haengi-friend.png') }}" alt="" class="haengi" style="position:absolute;right:6px;bottom:-12px;width:118px">
+</section>
+
+<form method="POST" action="{{ url_for('saving_analyze') }}" enctype="multipart/form-data" data-loading="reading" style="margin-top:24px">
+    {{ ui.csrf() }}
+    <label class="scan" for="menu_photo">
+        <input id="menu_photo" type="file" name="menu_photo" accept="image/jpeg,image/png,image/webp" capture="environment" required data-resize="2000" data-preview="menu-preview" class="sr-only">
+        <img id="menu-preview" alt="선택한 메뉴판 사진" hidden>
+        <span class="scan__corners"></span>
+        <span class="flex flex-col items-center gap-2 blue" style="position:absolute;font-weight:600;font-size:15px;pointer-events:none" id="menu-placeholder">
+            {{ ui.camera_icon(34) }}
+            메뉴판 사진 찍기 / 올리기
+            <span class="muted" style="font-size:12px;font-weight:400">글자가 잘 보이게 정면에서 찍어 주세요</span>
+        </span>
+    </label>
+
+    <div class="card-soft row-between" style="margin-top:14px">
+        <div>
+            <p style="margin:0;font-weight:700">함께 먹는 인원</p>
+            <p class="muted" style="margin:3px 0 0;font-size:12px">{{ country.flag }} {{ country.name }} · 기본 통화 {{ country.currency }}</p>
+        </div>
+        <div class="stepper blue" data-stepper data-unit="명">
+            <input type="hidden" name="people" value="{{ default_people }}" min="1" max="12">
+            <button type="button" data-step="-1" aria-label="인원 줄이기">−</button>
+            <span class="stepper__value" aria-live="polite">{{ default_people }}명</span>
+            <button type="button" data-step="1" aria-label="인원 늘리기">+</button>
+        </div>
     </div>
 
-    <div class="px-4 py-6 max-w-lg mx-auto space-y-6">
-        <!-- 메뉴판 사진 업로드 -->
-        <div class="card card-bordered bg-base-100 shadow-md">
-            <div class="card-body">
-                <h2 class="card-title">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                         stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /></svg>
-                    메뉴판 사진 업로드
-                </h2>
-                <form method="POST" action="{{ url_for('saving_upload') }}" enctype="multipart/form-data" class="mt-4">
-                    <div class="form-control mb-3">
-                        <label class="file-input file-input-bordered file-input-primary w-full">
-                            <input type="file" name="menu_photo" accept="image/*" required />
-                        </label>
-                    </div>
-                    <div class="form-control mb-3">
-                        <label class="label"><span class="label-text">추가 문의 (선택)</span></label>
-                        <input type="text" name="question" class="input input-bordered" placeholder="예: 이 메뉴 중 무엇을 추천하시나요?" />
-                    </div>
-                    <button type="submit" class="btn btn-primary w-full">행이에게 물어보기</button>
-                </form>
-            </div>
-        </div>
+    <label class="block" style="margin-top:14px">
+        <span class="sr-only">추가 요청</span>
+        <input type="text" name="note" maxlength="200" class="field" placeholder="요청사항 (예: 해산물 X, 1인 20유로 이하, 매운 거 OK)">
+    </label>
 
-        <!-- 행이 코멘트 출력 -->
-        {% if savings %}
-        <div class="space-y-4">
-            {% for saving in savings %}
-            <div class="card card-bordered bg-base-100 shadow-md">
-                <div class="card-body p-4">
-                    <div class="flex gap-3">
-                        {% if saving['image_path'] %}
-                        <div class="avatar flex-shrink-0">
-                            <div class="w-20 h-20 rounded">
-                                <img src="{{ url_for('uploaded_file', filename=saving['image_path']) }}" alt="메뉴판" />
-                            </div>
-                        </div>
-                        {% endif %}
-                        <div class="flex-1">
-                            <div class="flex items-center gap-2 mb-2">
-                                <div class="avatar placeholder">
-                                    <div class="bg-gradient-to-r from-accent to-secondary text-accent-content rounded-full w-8">
-                                        <span class="text-xs">行</span>
-                                    </div>
-                                </div>
-                                <span class="font-semibold text-sm">행이</span>
-                            </div>
-                            <div class="bg-info/10 rounded-lg p-3 text-sm">
-                                <p class="whitespace-pre-wrap">{{ saving['ai_comment'] }}</p>
-                            </div>
-                            {% if saving['question'] %}
-                            <p class="text-xs text-base-content/50 mt-2">질문: {{ saving['question'] }}</p>
-                            {% endif %}
-                            <p class="text-xs text-base-content/40 mt-1">{{ saving['created_at'][:16] }}</p>
-                        </div>
-                    </div>
-                </div>
+    <button type="submit" class="btn-pill btn-blue" style="margin-top:18px">행이에게 N빵 가이드 받기</button>
+    <p class="hint text-center">사진은 CLOVA OCR로 읽고, 주문 조합은 HyperCLOVA X가 판단해요.</p>
+</form>
+
+<section style="margin-top:30px">
+    <h2 class="section-title">지난 N빵 가이드</h2>
+    <div class="grid gap-2">
+        {% for item in history %}
+        {% set s = item.row %}{% set gd = item.guide %}
+        <a href="{{ url_for('saving_detail', saving_id=s['id']) }}" class="list-card" style="align-items:center">
+            <div class="list-card__thumb" style="width:64px;height:64px">
+                {% if s['menu_photo'] %}<img src="{{ url_for('uploaded_file', filename=s['menu_photo']) }}" alt="">{% else %}🍽️{% endif %}
             </div>
-            {% endfor %}
-        </div>
+            <div style="flex:1;min-width:0">
+                <p style="margin:0;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ gd.get('restaurant_type') or '메뉴판 분석' }}</p>
+                <p class="list-card__meta" style="margin-top:3px">{{ s['people'] }}명 · 1인 {{ gd.get('per_person')|money(s['currency']) }} · {{ s['date']|time_ago }}</p>
+            </div>
+            <span class="blue" style="font-weight:700;font-size:14px;flex-shrink:0">{{ s['total_amount']|money(s['currency']) }}</span>
+        </a>
         {% else %}
-        <div class="card card-bordered bg-base-100 shadow-md">
-            <div class="card-body text-center py-8">
-                <div class="avatar placeholder mx-auto mb-3">
-                    <div class="bg-gradient-to-r from-accent to-secondary text-accent-content rounded-full w-20">
-                        <span class="text-2xl">行</span>
-                    </div>
-                </div>
-                <h3 class="font-bold">행이에게 물어보세요!</h3>
-                <p class="text-base-content/60 text-sm">메뉴판 사진을 올리면 행이가 현명한 조언을 해줘요</p>
-            </div>
+        <div class="card-soft text-center" style="padding:24px 18px">
+            <p class="muted" style="margin:0;font-size:13px">아직 분석한 메뉴판이 없어요. 첫 메뉴판을 찍어 보세요!</p>
         </div>
-        {% endif %}
+        {% endfor %}
     </div>
-</div>
+</section>
+{% endblock %}
+
+{% block overlays %}
+{{ ui.loading('reading', '행이가 메뉴판을 읽고\nN빵 조합을 짜고 있어요', 'CLOVA OCR → HyperCLOVA X · 10~30초 정도 걸려요', 'haengi-friend.png', scan=true) }}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById('menu_photo').addEventListener('change', function () {
+        document.getElementById('menu-placeholder').style.display = this.files.length ? 'none' : '';
+    });
+</script>
 {% endblock %}

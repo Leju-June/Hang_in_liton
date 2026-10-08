@@ -1,58 +1,32 @@
 {% extends "base.html" %}
+{% from "_brand.html" import logo %}
+{% import "_ui.html" as ui %}
+{% set screen_theme = 'blue' %}
+{% set hide_dock = true %}
 {% block title %}로그인 - 행인{% endblock %}
 {% block content %}
-<div class="min-h-screen bg-gradient-to-b from-purple-100 to-base-200 flex items-center justify-center px-4">
-    <div class="card card-bordered bg-base-100 shadow-xl w-full max-w-md">
-        <div class="card-body items-center text-center">
-            <!-- 로고 -->
-            <div class="avatar placeholder mb-4">
-                <div class="bg-primary text-primary-content rounded-full w-20">
-                    <span class="text-4xl">行</span>
-                </div>
-            </div>
-            <h1 class="text-2xl font-bold">행인(HANG IN)</h1>
-            <p class="text-base-content/60">여행의 시작, 함께라면 더 아름답다</p>
+<a href="{{ url_for('home') }}" aria-label="처음 화면으로">{{ logo('logo') }}</a>
 
-            {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-            {% for category, message in messages %}
-            <div class="alert alert-{{ category }} mt-4">
-                <span>{{ message }}</span>
-            </div>
-            {% endfor %}
-            {% endif %}
-            {% endwith %}
+<h1 class="headline" style="margin-top:56px">다시 만나서 반가워요!
+행이와 여행을 이어가요.</h1>
 
-            <!-- 로그인 폼 -->
-            <form method="POST" action="{{ url_for('login') }}" class="mt-6 w-full">
-                <div class="form-control mb-4">
-                    <label class="label">
-                        <span class="label-text">이메일</span>
-                    </label>
-                    <input type="email" name="email" placeholder="your@email.com" required
-                           class="input input-bordered w-full bg-base-200" />
-                </div>
+<form method="POST" action="{{ url_for('login', next=request.args.get('next')) }}" style="margin-top:36px">
+    {{ ui.csrf() }}
+    <label class="form-row block">
+        <span class="block text-sm mb-2" style="color:rgba(255,255,255,.8)">이메일</span>
+        <input type="email" name="email" required autocomplete="email" placeholder="your@email.com" class="field field--glass">
+    </label>
+    <label class="form-row block">
+        <span class="block text-sm mb-2" style="color:rgba(255,255,255,.8)">비밀번호</span>
+        <input type="password" name="password" required autocomplete="current-password" placeholder="비밀번호" class="field field--glass">
+    </label>
+    <button type="submit" class="btn-pill btn-lime" style="margin-top:12px">로그인</button>
+</form>
 
-                <div class="form-control mb-6">
-                    <label class="label">
-                        <span class="label-text">비밀번호</span>
-                    </label>
-                    <input type="password" name="password" placeholder="••••••••" required
-                           class="input input-bordered w-full bg-base-200" />
-                </div>
+<p class="text-center text-sm" style="margin-top:22px;color:rgba(255,255,255,.75)">
+    아직 행인이 아니신가요?
+    <a href="{{ url_for('register') }}" class="lime" style="font-weight:700;margin-left:4px">회원가입</a>
+</p>
 
-                <button type="submit" class="btn btn-primary w-full">로그인</button>
-            </form>
-
-            <div class="divider">또는</div>
-
-            <p class="text-base-content/60">
-                회원이 아니신가요?
-                <a href="{{ url_for('register') }}" class="text-primary font-semibold">회원가입</a>
-            </p>
-
-            <a href="{{ url_for('home') }}" class="btn btn-ghost btn-sm mt-2">취소</a>
-        </div>
-    </div>
-</div>
+<img src="{{ url_for('static', filename='img/haengi.png') }}" alt="" class="haengi haengi--outline" style="width:150px;margin:40px auto 0">
 {% endblock %}

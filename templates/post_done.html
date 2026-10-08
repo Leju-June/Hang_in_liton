@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}글을 올렸어요 - 행인{% endblock %}
+{% block content %}
+<section class="flex flex-col items-center text-center" style="min-height:calc(100dvh - 170px);justify-content:center">
+    <img src="{{ url_for('static', filename='img/haengi.png') }}" alt="" class="haengi haengi--bob" style="width:150px">
+    <h1 style="margin:30px 0 0;font-size:23px;font-weight:700;line-height:1.45;color:var(--hb-ink)">성공적으로 글을 올렸어요!<br>매칭이 되길 바랄게요!</h1>
+    <p class="muted" style="margin:12px 0 0;font-size:14px">행인 신청이 오면 홈과 매칭 탭에서 알려드려요.</p>
+
+    <div class="grid gap-3 w-full" style="margin-top:44px">
+        <a href="{{ url_for('match_find') }}" class="btn-pill btn-blue">행인 찾기</a>
+        <a href="{{ url_for('post_detail', post_id=post_id) }}" class="btn-pill btn-soft">내 글 보기</a>
+        <a href="{{ url_for('home') }}" class="btn-pill btn-soft">홈화면으로 돌아가기</a>
+    </div>
+</section>
+{% endblock %}

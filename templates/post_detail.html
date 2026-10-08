@@ -1,49 +1,74 @@
 {% extends "base.html" %}
-{% block title %}여행 상세 - 행인{% endblock %}
+{% import "_ui.html" as ui %}
+{% block title %}{{ post['title'] }} - 행인{% endblock %}
 {% block content %}
-<div class="px-4 py-6 max-w-lg mx-auto">
-    <div class="card card-bordered bg-base-100 shadow-md">
-        <div class="card-body">
-            <h1 class="text-xl font-bold">{{ post['title'] }}</h1>
-            <div class="flex gap-2 mt-2">
-                <span class="badge badge-ghost">{{ post['nickname'] }}</span>
-                {% if post['trip_place'] %}
-                <span class="badge badge-outline">📍 {{ post['trip_place'] }}</span>
-                {% endif %}
-                {% if post['trip_date'] %}
-                <span class="badge badge-outline">📅 {{ post['trip_date'] }}</span>
-                {% endif %}
-            </div>
-            <p class="mt-4 whitespace-pre-wrap">{{ post['body'] }}</p>
-            <div class="divider"></div>
-            <div class="flex justify-between items-center">
-                <span class="text-sm text-base-content/50">{{ post['created_at'][:16] }}</span>
-                <a href="{{ url_for('home') }}" class="btn btn-ghost btn-sm">목록으로</a>
-            </div>
+{{ ui.back_link(url_for('match_find'), '행인 찾기') }}
+
+<div class="flex flex-wrap gap-2">
+    {% if post['category'] %}<span class="tag">{{ category_emoji.get(post['category'], '') }} {{ post['category'] }}</span>{% endif %}
+    {% if post['trip_place'] %}<span class="tag">📍 {{ post['trip_place'] }}</span>{% endif %}
+    {% if post['trip_date'] %}<span class="tag">📅 {{ post['trip_date'] }}</span>{% endif %}
+</div>
+<h1 style="margin:14px 0 0;font-size:23px;font-weight:700;line-height:1.4">{{ post['title'] }}</h1>
+<p class="muted" style="margin:8px 0 0;font-size:13px">{{ post['created_at']|time_ago }}</p>
+
+<div class="card-soft row-between" style="margin-top:20px">
+    <div class="flex items-center gap-3" style="min-width:0">
+        {{ ui.avatar(post['user_id'], 48) }}
+        <div style="min-width:0">
+            <p style="margin:0;font-weight:700">{{ post['nickname'] }}</p>
+            {% if author_profile %}<p class="muted" style="margin:3px 0 0;font-size:12px">{{ author_profile.summary }}</p>{% endif %}
         </div>
     </div>
-
-    {% if 'user_id' in session and post['user_id'] != session['user_id'] %}
-    <div class="mt-6">
-        <details class="collapse collapse-arrow bg-base-100 border border-base-300">
-            <summary class="collapse-title font-semibold">이 게시글에 매칭 신청하기</summary>
-            <div class="collapse-content">
-                <form method="POST" action="{{ url_for('match_apply', post_id=post['id']) }}">
-                    <input type="hidden" name="post_id" value="{{ post['id'] }}" />
-                    <div class="form-control mb-3">
-                        <label class="label"><span class="label-text">희망 약속 시간</span></label>
-                        <input type="datetime-local" name="match_time" class="input input-bordered" />
-                    </div>
-                    <div class="form-control mb-3">
-                        <label class="label"><span class="label-text">자기소개</span></label>
-                        <textarea name="match_message" class="textarea textarea-bordered h-24"
-                                  placeholder="간단한 자기소개를 적어주세요."></textarea>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-full">매칭 신청하기</button>
-                </form>
-            </div>
-        </details>
-    </div>
-    {% endif %}
+    {{ ui.type_badge(post['travel_type'], types, 'tag tag--lime') }}
 </div>
+
+<article style="margin-top:22px;font-size:15px;line-height:1.75;white-space:pre-wrap">{{ post['body'] }}</article>
+
+<div style="height:1px;background:var(--hb-line);margin:28px 0"></div>
+
+{% if post['user_id'] == current_user['id'] %}
+<h2 class="section-title">받은 행인 신청 {{ received|length }}</h2>
+<div class="grid gap-2">
+    {% for r in received %}
+    <a href="{{ url_for('match_request_detail', request_id=r['id']) }}" class="list-card" style="align-items:center">
+        {{ ui.avatar(r['from_user_id'], 46) }}
+        <div style="flex:1;min-width:0">
+            <p style="margin:0;font-weight:700">{{ r['nickname'] }} {{ ui.type_badge(r['travel_type'], types) }}</p>
+            <p class="list-card__meta" style="margin-top:4px">{{ r['message'] or '메시지 없음' }}</p>
+        </div>
+        <span class="tag{% if r['status'] == 'accepted' %} tag--lime{% endif %}">{{ {'pending': '대기 중', 'accepted': '수락', 'declined': '거절'}[r['status']] }}</span>
+    </a>
+    {% else %}
+    <p class="muted" style="font-size:14px">아직 신청이 없어요. 조금만 기다려 볼까요?</p>
+    {% endfor %}
+</div>
+{% elif my_request %}
+<div class="card-blue">
+    <p class="lime" style="margin:0;font-size:18px;font-weight:700">
+        {% if my_request['status'] == 'accepted' %}행인 매칭이 성사됐어요! 🎉{% elif my_request['status'] == 'declined' %}이번에는 아쉽게 거절됐어요{% else %}행인 신청을 보냈어요{% endif %}
+    </p>
+    <p style="margin:8px 0 14px;font-size:13px;color:rgba(255,255,255,.8)">
+        {% if my_request['status'] == 'accepted' %}상대의 연락처를 확인해 보세요.{% elif my_request['status'] == 'declined' %}다른 행인을 찾아볼까요?{% else %}상대가 수락하면 서로의 연락처가 공개돼요.{% endif %}
+    </p>
+    <a href="{{ url_for('match_request_detail', request_id=my_request['id']) }}" class="btn-pill btn-lime btn-sm">신청 내용 보기</a>
+</div>
+{% else %}
+<h2 class="section-title">이 행인과 함께할래요</h2>
+<form method="POST" action="{{ url_for('match_apply', post_id=post['id']) }}">
+    {{ ui.csrf() }}
+    <textarea name="message" maxlength="500" class="field" style="min-height:120px" placeholder="간단한 자기소개와 함께하고 싶은 이유를 적어 주세요."></textarea>
+    <div class="grid grid-cols-2 gap-3" style="margin-top:12px">
+        <label class="block">
+            <span class="block text-sm muted mb-1">만날 시간 (선택)</span>
+            <input type="datetime-local" name="meet_time" class="field" style="font-size:13px;padding:0 10px">
+        </label>
+        <label class="block">
+            <span class="block text-sm muted mb-1">만날 장소 (선택)</span>
+            <input type="text" name="meet_place" maxlength="80" class="field" placeholder="예: 숙소 로비">
+        </label>
+    </div>
+    <button type="submit" class="btn-pill btn-blue" style="margin-top:18px">행인 신청하기</button>
+</form>
+{% endif %}
 {% endblock %}

@@ -19,7 +19,8 @@
       form.querySelectorAll('button[type=submit]').forEach(function (b) { b.disabled = true; });
     });
   });
-  window.addEventListener('pageshow', function () {
+  window.addEventListener('pageshow', function (e) {
+    if (!e.persisted) return;  // 뒤로가기(bfcache)로 돌아왔을 때만 로딩 화면을 닫는다
     document.querySelectorAll('.loading-overlay.is-on').forEach(function (o) { o.classList.remove('is-on'); });
     document.querySelectorAll('form[data-loading] button[type=submit]').forEach(function (b) { b.disabled = false; });
   });
@@ -109,30 +110,26 @@
   var wizard = document.querySelector('[data-wizard]');
   if (wizard) {
     var steps = Array.prototype.slice.call(wizard.querySelectorAll('.step'));
-    var bars = Array.prototype.slice.call(wizard.querySelectorAll('.progress i'));
     var current = 0;
-    function update() {
+    function syncButtons() {
+      steps.forEach(function (step) {
+        var next = step.querySelector('[data-next]');
+        if (next && step.dataset.required) next.disabled = !step.querySelector('input:checked');
+      });
+    }
+    function go(index) {
+      current = Math.max(0, Math.min(steps.length - 1, index));
       steps.forEach(function (s, i) { s.classList.toggle('is-on', i === current); });
-      bars.forEach(function (b, i) { b.classList.toggle('is-on', i < current); });
-      var step = steps[current];
-      var next = step.querySelector('[data-next]');
-      if (next && step.dataset.required) next.disabled = !step.querySelector('input:checked');
       window.scrollTo(0, 0);
     }
-    wizard.addEventListener('change', update);
+    wizard.addEventListener('change', syncButtons);
     wizard.querySelectorAll('[data-next]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        if (btn.type === 'submit') return;
-        current = Math.min(steps.length - 1, current + 1);
-        update();
-      });
+      btn.addEventListener('click', function () { if (btn.type !== 'submit') go(current + 1); });
     });
     wizard.querySelectorAll('[data-back]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        current = Math.max(0, current - 1);
-        update();
-      });
+      btn.addEventListener('click', function () { go(current - 1); });
     });
-    update();
+    syncButtons();
+    go(0);
   }
 })();

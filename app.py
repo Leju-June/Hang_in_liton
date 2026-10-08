@@ -1,4 +1,3 @@
-import base64
 import json
 import os
 import secrets
@@ -276,6 +275,7 @@ def time_ago(value):
 
 app.jinja_env.filters['money'] = money
 app.jinja_env.filters['time_ago'] = time_ago
+app.jinja_env.globals.update(csrf_token=csrf_token, avatar_of=avatar_of)
 
 TAB_BY_ENDPOINT = {
     'home': 'home',
@@ -294,11 +294,9 @@ def inject_globals():
             "SELECT COUNT(*) FROM match_requests WHERE to_user_id = ? AND status = 'pending'",
             (g.user['id'],)).fetchone()[0]
     return {
-        'csrf_token': csrf_token,
         'current_user': g.get('user'),
         'active_tab': TAB_BY_ENDPOINT.get(request.endpoint, ''),
         'pending_requests': pending,
-        'avatar_of': avatar_of,
         'countries': COUNTRIES,
         'category_emoji': CATEGORY_EMOJI,
     }
@@ -335,6 +333,11 @@ def uploaded_file(filename):
 def bad_request(err):
     flash(getattr(err, 'description', None) or '잘못된 요청이에요.', 'error')
     return redirect(request.referrer or url_for('home'))
+
+
+@app.errorhandler(404)
+def not_found(_err):
+    return render_template('error.html'), 404
 
 
 @app.errorhandler(413)
@@ -622,20 +625,22 @@ def respond_request(request_id, status):
     db.execute('INSERT INTO notifications (user_id, message) VALUES (?, ?)',
                (req['from_user_id'], f"{g.user['nickname']}님이 행인 신청을 {text}"))
     db.commit()
+    if status == 'accepted':
+        flash('행인 매칭이 성사됐어요! 🎉', 'success')
+    else:
+        flash('매칭 요청을 거절했어요.', 'info')
     return redirect(url_for('match_request_detail', request_id=request_id))
 
 
 @app.route('/match/request/<int:request_id>/accept', methods=['POST'])
 @login_required
 def match_accept(request_id):
-    flash('행인 매칭이 성사됐어요! 🎉', 'success')
     return respond_request(request_id, 'accepted')
 
 
 @app.route('/match/request/<int:request_id>/decline', methods=['POST'])
 @login_required
 def match_decline(request_id):
-    flash('매칭 요청을 거절했어요.', 'info')
     return respond_request(request_id, 'declined')
 
 
@@ -814,19 +819,18 @@ def saving_analyze():
     filename, data, fmt = saved
     country = country_of(g.user['country'])
 
-    ocr_result, source = '', 'vision'
+    # 1) CLOVA OCR로 글자 추출 → 실패하면 HCX-005 비전이 대신 옮겨 적음  2) HyperCLOVA X가 N빵 조합 판단
+    menu_text, source = '', 'ocr'
     if clova.ocr_configured() and fmt in ('jpg', 'png'):
         try:
-            ocr_result = clova.ocr_text(data, fmt)
-            source = 'ocr'
+            menu_text = clova.ocr_text(data, fmt)
         except clova.ClovaError as e:
             app.logger.warning('OCR failed, falling back to HCX vision: %s', e)
-    if len(ocr_result.strip()) < 8:
-        ocr_result, source = '', 'vision'
     try:
-        guide = clova.analyze_menu(people=people, country_name=country['name'], currency=country['currency'],
-                                   note=note, travel_type=travel_profile_of(g.user), ocr=ocr_result or None,
-                                   image_b64=None if ocr_result else base64.b64encode(data).decode())
+        if len(menu_text.strip()) < 8:
+            menu_text, source = clova.transcribe_menu(data, fmt), 'vision'
+        guide = clova.analyze_menu(menu_text=menu_text, people=people, country_name=country['name'],
+                                   currency=country['currency'], note=note, travel_type=travel_profile_of(g.user))
     except clova.ClovaError as e:
         app.logger.warning('menu guide failed: %s', e)
         flash(f'행이가 메뉴판을 분석하지 못했어요. {e}', 'error')
@@ -837,7 +841,7 @@ def saving_analyze():
                                              source, ocr_text, result_json)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
                      (g.user['id'], filename, guide['summary'], guide['total'], people, guide['currency'], note,
-                      source, ocr_result, json.dumps(guide, ensure_ascii=False)))
+                      source, menu_text, json.dumps(guide, ensure_ascii=False)))
     db.commit()
     return redirect(url_for('saving_detail', saving_id=cur.lastrowid))
 

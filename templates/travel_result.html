@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% from "_brand.html" import logo %}
+{% set screen_theme = 'blue' %}
+{% set hide_dock = true %}
+{% block title %}{{ profile.name }} - 나의 여행 성향{% endblock %}
+{% block content %}
+{{ logo('logo') }}
+
+<p style="margin:44px 0 0;font-size:15px;color:rgba(255,255,255,.8)">행이가 분석한 {{ current_user.nickname }}님의 여행 성향은</p>
+<div class="text-center" style="margin-top:22px">
+    <div style="font-size:64px;line-height:1">{{ profile.emoji }}</div>
+    <h1 class="lime" style="font-size:30px;font-weight:800;margin:14px 0 6px">{{ profile.name }}</h1>
+    <div class="flex justify-center gap-2" style="margin-top:12px">
+        {% for a in profile.axes %}<span class="tag tag--glass" title="{{ a.pair|join(' / ') }}">{{ a.letter }} · {{ a.name }}</span>{% endfor %}
+    </div>
+    <p style="margin:18px auto 0;font-size:17px;line-height:1.55;max-width:320px">{{ profile.summary }}</p>
+</div>
+
+{% if profile.keywords %}
+<div class="flex flex-wrap justify-center gap-2" style="margin-top:18px">
+    {% for k in profile.keywords %}<span class="tag tag--lime">{{ k }}</span>{% endfor %}
+</div>
+{% endif %}
+
+{% if profile.description %}
+<div style="margin-top:26px;padding:18px 20px;border-radius:14px;background:rgba(255,255,255,.12);font-size:14px;line-height:1.7">
+    {{ profile.description }}
+</div>
+{% endif %}
+
+{% if profile.best_match %}
+<div class="row-between" style="margin-top:12px;padding:14px 18px;border-radius:14px;background:rgba(255,255,255,.12);font-size:14px">
+    <span style="color:rgba(255,255,255,.75)">잘 맞는 행인</span>
+    <span class="lime" style="font-weight:700">{{ profile.best_match.emoji }} {{ profile.best_match.name }}</span>
+</div>
+{% endif %}
+
+<img src="{{ url_for('static', filename='img/haengi-friend.png') }}" alt="" class="haengi haengi--outline haengi--bob" style="width:130px;margin:30px auto 26px">
+
+<div class="grid gap-3">
+    <a href="{{ url_for('home') }}" class="btn-pill btn-lime">여행을 시작해요!</a>
+    <a href="{{ url_for('mypage') }}" class="btn-pill btn-glass">마이페이지에서 자세히 보기</a>
+</div>
+{% if profile.source == 'rule' %}
+<p class="hint text-center" style="margin-top:14px">AI 연결 문제로 기본 규칙으로 분석했어요. 마이페이지에서 다시 분석할 수 있어요.</p>
+{% endif %}
+{% endblock %}

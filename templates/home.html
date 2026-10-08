@@ -1,79 +1,92 @@
 {% extends "base.html" %}
-{% block title %}홈 - 행인(HANG IN){% endblock %}
+{% from "_brand.html" import logo %}
+{% import "_ui.html" as ui %}
+{% block title %}홈 - 행인 HANG-IN{% endblock %}
 {% block content %}
-<div class="min-h-screen bg-gradient-to-b from-sky-100 to-base-200">
-    <!-- Header -->
-    <div class="bg-primary text-primary-content px-4 py-4 shadow-lg">
-        <div class="flex items-center justify-between">
-            <h1 class="text-xl font-bold">행인 HANG IN</h1>
-            {% if 'user_id' in session %}
-            <div class="badge badge-outline">{{ session.nickname }}</div>
-            {% else %}
-            <div class="flex gap-2">
-                <a href="{{ url_for('login') }}" class="btn btn-sm btn-ghost btn-circle">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                         stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14" /></svg>
-                </a>
-                <a href="{{ url_for('register') }}" class="btn btn-sm btn-secondary">시작하기</a>
-            </div>
-            {% endif %}
+<header class="top-band">
+    <div class="row-between">
+        {{ logo('logo') }}
+        <a href="{{ url_for('match_requests') }}" class="relative" aria-label="매칭 요청 {{ pending_requests }}건" style="color:var(--hb-lime)">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            {% if pending_requests %}<span class="dock__badge" style="top:-6px;right:-8px">{{ pending_requests }}</span>{% endif %}
+        </a>
+    </div>
+</header>
+
+<div class="top-sheet">
+    <form method="POST" action="{{ url_for('set_country') }}" class="page-title" style="font-size:25px">
+        {{ ui.csrf() }}
+        나는 지금<br>
+        ( <label class="sr-only" for="country">현재 여행 국가</label>
+        <select id="country" name="country" onchange="this.form.submit()" style="font:inherit;color:inherit;border:0;background:transparent;padding:0;cursor:pointer;text-decoration:underline;text-decoration-color:var(--hb-lime);text-decoration-thickness:4px;text-underline-offset:2px">
+            {% for code, c in countries.items() %}<option value="{{ code }}" {% if code == country.code %}selected{% endif %}>{{ c[0] }} {{ c[1] }}</option>{% endfor %}
+        </select> )에 있어요!
+        <noscript><button type="submit" class="btn-pill btn-blue btn-xs">변경</button></noscript>
+    </form>
+
+    <section class="bubble" style="margin-top:22px" aria-label="현지 인사">
+        <div class="bubble__hello">{{ country.hello }}</div>
+        <p style="margin:10px 0 0;font-size:13px;color:rgba(255,255,255,.8)">{{ country.name }}에서는 이렇게 인사해요 · {{ country.hello_ko }}</p>
+    </section>
+    <img src="{{ url_for('static', filename='img/haengi.png') }}" alt="" class="haengi haengi--bob" style="width:170px;margin:34px 0 0 auto;margin-right:12%">
+
+    {% if profile %}
+    <a href="{{ url_for('mypage') }}" class="card-blue row-between no-underline" style="margin-top:-6px;position:relative">
+        <div>
+            <p style="margin:0;font-size:12px;color:rgba(255,255,255,.7)">나의 여행 성향</p>
+            <p class="lime" style="margin:6px 0 0;font-size:19px;font-weight:700">{{ profile.emoji }} {{ profile.name }}</p>
+            <p style="margin:6px 0 0;font-size:13px;color:rgba(255,255,255,.85)">{{ profile.summary }}</p>
         </div>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#BFFF48" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    </a>
+    {% else %}
+    <a href="{{ url_for('onboarding') }}" class="card-blue row-between no-underline" style="margin-top:-6px">
+        <div>
+            <p class="lime" style="margin:0;font-size:18px;font-weight:700">아직 여행 성향이 없어요</p>
+            <p style="margin:6px 0 0;font-size:13px;color:rgba(255,255,255,.85)">질문 3개로 16가지 유형 중 나를 찾아보세요</p>
+        </div>
+        <span class="tag tag--lime">분석하기</span>
+    </a>
+    {% endif %}
+
+    <div class="grid grid-cols-2 gap-3" style="margin-top:14px">
+        <a href="{{ url_for('saving_page') }}" class="card-soft no-underline" style="color:inherit">
+            <div style="font-size:26px">📸</div>
+            <p style="margin:8px 0 2px;font-weight:700">메뉴판 N빵</p>
+            <p class="muted" style="margin:0;font-size:12px">찍으면 행이가 주문 조합을 짜줘요</p>
+        </a>
+        <a href="{{ url_for('expense_page') }}" class="card-soft no-underline" style="color:inherit">
+            <div style="font-size:26px">🧾</div>
+            <p style="margin:8px 0 2px;font-weight:700">여행 정산</p>
+            <p class="muted" style="margin:0;font-size:12px">누가 얼마 낼지 깔끔하게</p>
+        </a>
     </div>
 
-    <!-- Hero Section -->
-    <div class="px-4 py-6 text-center">
-        <div class="hero-content flex-col">
-            <h2 class="text-2xl font-bold text-base-content">같은 길, 같은 맛, 같은 사람</h2>
-            <p class="text-base-content/70 mt-2">여행의 낭비를 줄이고 사람과 만나세요</p>
+    <section style="margin-top:30px">
+        <div class="row-between" style="margin-bottom:12px">
+            <h2 class="section-title" style="margin:0">{{ country.flag }} 근처 행인 모집글</h2>
+            <a href="{{ url_for('match_find') }}" class="text-sm blue" style="font-weight:600">전체 보기</a>
         </div>
-    </div>
-
-    <!-- Post List -->
-    <div class="px-4 pb-4">
-        <div class="flex justify-between items-center mb-3">
-            <h3 class="text-lg font-semibold">여행 모집 글</h3>
-            {% if 'user_id' in session %}
-            <a href="{{ url_for('post_new') }}" class="btn btn-primary btn-sm gap-1">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24"
-                     stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-                작성
-            </a>
-            {% else %}
-            <a href="{{ url_for('login') }}" class="btn btn-primary btn-sm">로그인 후 작성</a>
-            {% endif %}
-        </div>
-
         {% if posts %}
-        <div class="space-y-3">
+        <div class="grid gap-2">
             {% for post in posts %}
-            <a href="{{ url_for('post_detail', post_id=post['id']) }}" class="card card-bordered bg-base-100 shadow-md">
-                <div class="card-body p-4">
-                    <h2 class="card-title text-base">{{ post['title'] }}</h2>
-                    <p class="text-sm text-base-content/70 line-clamp-2">{{ post['body'][:100] }}{% if post['body']|length > 100 %}...{% endif %}</p>
-                    <div class="flex items-center gap-2 mt-1">
-                        <span class="badge badge-sm badge-ghost">{{ post['nickname'] }}</span>
-                        {% if post['trip_date'] %}
-                        <span class="text-xs text-base-content/60">📅 {{ post['trip_date'] }}</span>
-                        {% endif %}
-                        {% if post['trip_place'] %}
-                        <span class="text-xs text-base-content/60">📍 {{ post['trip_place'] }}</span>
-                        {% endif %}
-                    </div>
-                    <div class="card-actions justify-end mt-1">
-                        <span class="text-xs text-base-content/50">{{ post['created_at'][:16] }}</span>
-                    </div>
+            <a href="{{ url_for('post_detail', post_id=post['id']) }}" class="list-card">
+                <div class="list-card__thumb">{{ category_emoji.get(post['category'], '🧳') }}</div>
+                <div style="min-width:0">
+                    <p class="list-card__title">{{ post['title'] }}</p>
+                    <p class="list-card__meta">{{ post['trip_place'] or country.name }} · {{ post['created_at']|time_ago }} · {{ post['nickname'] }}</p>
+                    {{ ui.type_badge(post['travel_type'], types) }}
                 </div>
             </a>
             {% endfor %}
         </div>
         {% else %}
-        <div class="text-center py-12">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-base-content/30" fill="none"
-                 viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
-            <p class="text-base-content/50 mt-2">아직 게시글이 없습니다.</p>
-            <p class="text-base-content/40 text-sm">첫 번째 글을 작성해보세요!</p>
+        <div class="card-soft text-center" style="padding:26px 18px">
+            <p style="margin:0;font-weight:600">아직 모집글이 없어요</p>
+            <p class="muted" style="margin:6px 0 14px;font-size:13px">첫 번째 행인을 구해 보세요!</p>
+            <a href="{{ url_for('match_new') }}" class="btn-pill btn-blue btn-sm" style="margin:0 auto">행인 구하기</a>
         </div>
         {% endif %}
-    </div>
+    </section>
 </div>
 {% endblock %}

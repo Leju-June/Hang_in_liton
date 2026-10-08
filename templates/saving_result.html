@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui %}
+{% set cur = guide.get('currency') or row['currency'] %}
+{% block title %}절약형 N빵 가이드 - 행인{% endblock %}
+{% block content %}
+{{ ui.back_link(url_for('saving_page'), '절약하기') }}
+
+<div class="flex items-center gap-3">
+    {% if row['menu_photo'] %}
+    <a href="{{ url_for('uploaded_file', filename=row['menu_photo']) }}" target="_blank" rel="noopener" class="list-card__thumb" style="width:64px;height:64px;background:var(--hb-soft)">
+        <img src="{{ url_for('uploaded_file', filename=row['menu_photo']) }}" alt="메뉴판 사진">
+    </a>
+    {% endif %}
+    <div style="min-width:0">
+        <p class="muted" style="margin:0;font-size:12px">{{ row['date']|time_ago }} · {{ row['people'] }}명 · {{ 'CLOVA OCR' if row['source'] == 'ocr' else 'HCX-005 비전' }}로 읽음</p>
+        <h1 class="page-title" style="font-size:22px;margin-top:4px">{{ guide.get('restaurant_type') or '메뉴판 분석 결과' }}</h1>
+    </div>
+</div>
+
+{% if guide.get('orders') %}
+<section class="card-blue" style="margin-top:20px;padding:20px">
+    <div class="row-between">
+        <h2 class="lime" style="margin:0;font-size:19px;font-weight:700">절약형 N빵 가이드</h2>
+        <span class="tag tag--glass">{{ row['people'] }}명</span>
+    </div>
+    <p style="margin:6px 0 0;font-size:13px;color:rgba(255,255,255,.8)">{{ row['people'] }}명이서 이렇게 주문해서 나눠 드세요</p>
+    <hr>
+    <ul class="grid gap-4" style="margin:0;padding:0;list-style:none">
+        {% for o in guide['orders'] %}
+        <li class="flex gap-3">
+            <span class="tag tag--lime" style="height:30px;min-width:44px;justify-content:center;font-size:14px">×{{ o['quantity'] }}</span>
+            <div style="flex:1;min-width:0">
+                <div class="row-between" style="align-items:flex-start">
+                    <p style="margin:0;font-weight:700;line-height:1.35">{{ o['name_ko'] or o['name'] }}</p>
+                    <span style="font-weight:700;white-space:nowrap">{{ o['subtotal']|money(cur) }}</span>
+                </div>
+                <p style="margin:2px 0 0;font-size:12px;color:rgba(255,255,255,.65)">{{ o['name'] }}{% if o['unit_price'] is not none %} · {{ o['unit_price']|money(cur) }} × {{ o['quantity'] }}{% endif %}</p>
+                {% if o['reason'] %}<p style="margin:6px 0 0;font-size:13px;line-height:1.5;color:rgba(255,255,255,.9)">{{ o['reason'] }}</p>{% endif %}
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+    <hr>
+    <div class="row-between" style="font-size:14px"><span>총 주문 금액</span><b>{{ guide['total']|money(cur) }}</b></div>
+    <div class="row-between" style="margin-top:10px">
+        <span style="font-size:14px">1인당</span>
+        <b class="lime" style="font-size:26px;font-weight:800">{{ guide['per_person']|money(cur) }}</b>
+    </div>
+    {% if guide.get('saving') %}
+    <div style="margin-top:14px;padding:12px 14px;border-radius:10px;background:var(--hb-lime);color:var(--hb-blue);font-size:14px;font-weight:600">
+        💸 각자 하나씩 시킬 때({{ guide['individual_estimate']|money(cur) }})보다 약 {{ guide['saving']|money(cur) }} 아껴요!
+    </div>
+    {% endif %}
+</section>
+{% else %}
+<section class="card-soft text-center" style="margin-top:20px;padding:28px 18px">
+    <img src="{{ url_for('static', filename='img/haengi-friend.png') }}" alt="" class="haengi" style="width:90px;margin:0 auto 10px">
+    <p style="margin:0;font-weight:700">메뉴를 충분히 읽지 못했어요</p>
+    <p class="muted" style="margin:6px 0 0;font-size:13px">글자가 잘 보이게 다시 찍어 주세요.</p>
+</section>
+{% endif %}
+
+{% if guide.get('summary') or guide.get('split_tip') %}
+<section class="flex gap-3" style="margin-top:18px;align-items:flex-start">
+    <img src="{{ url_for('static', filename='img/avatar-blue.png') }}" alt="행이" class="avatar-img" style="width:44px;height:44px;background:var(--hb-soft)">
+    <div class="card-soft" style="flex:1;border-top-left-radius:4px;font-size:14px;line-height:1.65">
+        {% if guide.get('summary') %}<p style="margin:0;font-weight:700">{{ guide['summary'] }}</p>{% endif %}
+        {% if guide.get('split_tip') %}<p style="margin:6px 0 0">{{ guide['split_tip'] }}</p>{% endif %}
+    </div>
+</section>
+{% endif %}
+
+{% if guide.get('saving_tips') %}
+<section style="margin-top:22px">
+    <h2 class="section-title">행이의 절약 팁</h2>
+    <ul class="grid gap-2" style="margin:0;padding:0;list-style:none">
+        {% for tip in guide['saving_tips'] %}
+        <li class="card-line flex gap-2" style="padding:12px 14px;font-size:14px;line-height:1.55"><span>💡</span><span>{{ tip }}</span></li>
+        {% endfor %}
+    </ul>
+</section>
+{% endif %}
+
+{% if guide.get('menu_items') %}
+<details class="fold card-line" style="margin-top:18px">
+    <summary class="row-between" style="font-weight:700">
+        메뉴판 번역 보기 ({{ guide['menu_items']|length }})
+        <svg class="fold__icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+    </summary>
+    <table class="menu-table" style="margin-top:10px">
+        <tbody>
+        {% for m in guide['menu_items'] %}
+        <tr>
+            <td><b>{{ m['name_ko'] or m['name'] }}</b>{% if m['shareable'] %} <span class="tag" style="height:20px;font-size:10px">나눠 먹기 좋음</span>{% endif %}<br><span class="muted">{{ m['name'] }} · {{ m['category'] }}</span></td>
+            <td>{{ m['price']|money(cur) }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</details>
+{% endif %}
+
+<div class="grid gap-3" style="margin-top:24px">
+    {% if guide.get('total') %}
+    <a href="{{ url_for('expense_page', title='식사 · ' ~ (guide.get('restaurant_type') or '메뉴판 N빵'), amount=guide['total']) }}" class="btn-pill btn-blue">정산에 바로 기록하기</a>
+    {% endif %}
+    <a href="{{ url_for('saving_page') }}" class="btn-pill btn-soft">다른 메뉴판 찍기</a>
+    <form method="POST" action="{{ url_for('saving_delete', saving_id=row['id']) }}" class="text-center" onsubmit="return confirm('이 분석 기록을 삭제할까요?')">
+        {{ ui.csrf() }}<button type="submit" class="link-btn muted" style="font-size:13px">기록 삭제</button>
+    </form>
+</div>
+{% endblock %}

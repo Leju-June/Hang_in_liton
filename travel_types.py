@@ -78,6 +78,22 @@ _WEIGHTS = {
 }
 
 
+def plain(option):
+    """'🚌 버스' → '버스' (프롬프트에는 이모지를 뺀 이름만 넣는다)"""
+    return option.split(' ', 1)[1] if ' ' in option else option
+
+
+def axis_hints():
+    """선택지별로 어느 쪽 성향에 가까운지 정리한 해석 가이드 (프롬프트용)"""
+    lines = []
+    for a in AXES:
+        first = [plain(o) for o, w in _WEIGHTS.items() if w.get(a['key'], 0) > 0]
+        second = [plain(o) for o, w in _WEIGHTS.items() if w.get(a['key'], 0) < 0]
+        lines.append(f"- {a['key']} {a['letters'][0]}({a['names'][0]}) 쪽: {', '.join(first)}"
+                     f" / {a['letters'][1]}({a['names'][1]}) 쪽: {', '.join(second)}")
+    return '\n'.join(lines)
+
+
 def clean_answers(form_lists):
     """폼에서 받은 선택값 중 정의된 선택지만 남긴다."""
     out = {}
